@@ -1,8 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.core.config import settings
+from app.db.session import check_database_connection
 
 
 app = FastAPI(
-    title="FactoryPulse API",
+    title=f"{settings.app_name} API",
     description="Manufacturing quality and process intelligence platform",
     version="0.1.0",
 )
@@ -21,4 +25,20 @@ async def health_check() -> dict[str, str]:
         "status": "healthy",
         "service": "factorypulse-api",
         "version": "0.1.0",
+    }
+
+
+@app.get("/health/database", tags=["Health"])
+def database_health_check() -> dict[str, str]:
+    try:
+        check_database_connection()
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database connection failed",
+        ) from error
+
+    return {
+        "status": "healthy",
+        "database": "connected",
     }

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.routes.machines import router as machines_router
 from app.core.config import settings
 from app.db.session import check_database_connection
 
@@ -10,6 +11,8 @@ app = FastAPI(
     description="Manufacturing quality and process intelligence platform",
     version="0.1.0",
 )
+
+app.include_router(machines_router)
 
 
 @app.get("/")

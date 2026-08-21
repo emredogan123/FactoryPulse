@@ -4,7 +4,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.api.routes.machines import router as machines_router
 from app.core.config import settings
 from app.db.session import check_database_connection
-
+from app.api.routes.production_orders import (
+    router as production_orders_router,
+)
 
 app = FastAPI(
     title=f"{settings.app_name} API",
@@ -13,7 +15,7 @@ app = FastAPI(
 )
 
 app.include_router(machines_router)
-
+app.include_router(production_orders_router)
 
 @app.get("/")
 async def root() -> dict[str, str]:

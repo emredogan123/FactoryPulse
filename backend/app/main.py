@@ -8,6 +8,8 @@ from app.api.routes.production_orders import (
     router as production_orders_router,
 )
 
+from app.api.routes.pcb_units import router as pcb_units_router
+
 app = FastAPI(
     title=f"{settings.app_name} API",
     description="Manufacturing quality and process intelligence platform",
@@ -16,6 +18,7 @@ app = FastAPI(
 
 app.include_router(machines_router)
 app.include_router(production_orders_router)
+app.include_router(pcb_units_router)
 
 @app.get("/")
 async def root() -> dict[str, str]:

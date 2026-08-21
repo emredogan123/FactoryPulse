@@ -6,10 +6,12 @@ from sqlalchemy import CheckConstraint, DateTime, Integer
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy import String, func
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
 
 from app.db.session import Base
-
+if TYPE_CHECKING:
+    from app.models.pcb_unit import PCBUnit
 
 class ProductionOrderStatus(str, Enum):
     PLANNED = "PLANNED"
@@ -92,4 +94,9 @@ class ProductionOrder(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    pcb_units: Mapped[list["PCBUnit"]] = relationship(
+        back_populates="production_order",
+        cascade="all, delete-orphan",
     )

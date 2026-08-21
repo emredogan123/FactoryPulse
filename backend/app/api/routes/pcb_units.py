@@ -1,0 +1,89 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.schemas.pcb_unit import (
+    PCBUnitCreate,
+    PCBUnitResponse,
+)
+from app.services.pcb_unit import (
+    PCBSerialNumberAlreadyExistsError,
+    PCBUnitNotFoundError,
+    create_pcb_unit,
+    get_pcb_unit,
+    get_pcb_units,
+)
+from app.services.production_order import (
+    ProductionOrderNotFoundError,
+)
+
+
+router = APIRouter(
+    prefix="/api/v1/pcb-units",
+    tags=["PCB Units"],
+)
+
+
+@router.post(
+    "",
+    response_model=PCBUnitResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_pcb_unit_endpoint(
+    data: PCBUnitCreate,
+    db: Session = Depends(get_db),
+) -> PCBUnitResponse:
+    try:
+        return create_pcb_unit(db, data)
+    except PCBSerialNumberAlreadyExistsError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
+    except ProductionOrderNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+
+
+@router.get(
+    "",
+    response_model=list[PCBUnitResponse],
+)
+def list_pcb_units_endpoint(
+    production_order_id: UUID | None = None,
+    db: Session = Depends(get_db),
+) -> list[PCBUnitResponse]:
+    try:
+        return get_pcb_units(
+            db,
+            production_order_id,
+        )
+    except ProductionOrderNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+
+
+@router.get(
+    "/{pcb_unit_id}",
+    response_model=PCBUnitResponse,
+)
+def get_pcb_unit_endpoint(
+    pcb_unit_id: UUID,
+    db: Session = Depends(get_db),
+) -> PCBUnitResponse:
+    try:
+        return get_pcb_unit(
+            db,
+            pcb_unit_id,
+        )
+    except PCBUnitNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error

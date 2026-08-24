@@ -9,6 +9,7 @@ from app.models.process_event import (
     ProcessEventResult,
 )
 from app.models.quality_measurement import QualityMeasurement
+from app.models.user import User, UserRole
 
 __all__ = [
     "Machine",
@@ -20,5 +21,7 @@ __all__ = [
     "PCBUnitStatus",
     "ProcessEvent",
     "ProcessEventResult",
-    "QualityMeasurement"
+    "QualityMeasurement",
+    "User",
+    "UserRole",
 ]

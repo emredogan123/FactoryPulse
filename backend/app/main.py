@@ -16,6 +16,7 @@ from app.api.routes.quality_measurements import (
     router as quality_measurements_router,
 )
 from app.analytics.router import router as analytics_router
+from app.auth.router import router as auth_router
 
 
 app = FastAPI(
@@ -29,10 +30,8 @@ app.include_router(production_orders_router)
 app.include_router(pcb_units_router)
 app.include_router(process_events_router)
 app.include_router(quality_measurements_router)
-app.include_router(
-    analytics_router,
-    prefix="/api/v1",
-)
+app.include_router(analytics_router,prefix="/api/v1",)
+app.include_router(auth_router,prefix="/api/v1",)
 
 
 @app.get("/")

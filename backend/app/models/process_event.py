@@ -15,7 +15,7 @@ from app.db.session import Base
 if TYPE_CHECKING:
     from app.models.machine import Machine
     from app.models.pcb_unit import PCBUnit
-
+    from app.models.quality_measurement import QualityMeasurement
 
 class ProcessEventResult(str, Enum):
     PENDING = "PENDING"
@@ -110,4 +110,10 @@ class ProcessEvent(Base):
 
     machine: Mapped["Machine"] = relationship(
         back_populates="process_events",
+    )
+
+    quality_measurements: Mapped[
+        list["QualityMeasurement"]] = relationship(
+        back_populates="process_event",
+        cascade="all, delete-orphan",
     )

@@ -8,6 +8,7 @@ from app.models.process_event import (
     ProcessEvent,
     ProcessEventResult,
 )
+from app.models.quality_measurement import QualityMeasurement
 
 __all__ = [
     "Machine",
@@ -19,4 +20,5 @@ __all__ = [
     "PCBUnitStatus",
     "ProcessEvent",
     "ProcessEventResult",
+    "QualityMeasurement"
 ]

@@ -9,6 +9,7 @@ from app.db.session import Base
 from app.models.production_order import ProductionOrder  # noqa: F401
 from app.models.pcb_unit import PCBUnit  # noqa: F401
 from app.models.process_event import ProcessEvent  # noqa: F401
+from app.models.quality_measurement import QualityMeasurement  # noqa: F401
 
 config = context.config
 

@@ -12,8 +12,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
 if TYPE_CHECKING:
+    from app.models.process_event import ProcessEvent
     from app.models.production_order import ProductionOrder
-
 
 class PCBUnitStatus(str, Enum):
     QUEUED = "QUEUED"
@@ -73,4 +73,9 @@ class PCBUnit(Base):
 
     production_order: Mapped["ProductionOrder"] = relationship(
         back_populates="pcb_units",
+    )
+
+    process_events: Mapped[list["ProcessEvent"]] = relationship(
+        back_populates="pcb_unit",
+        cascade="all, delete-orphan",
     )

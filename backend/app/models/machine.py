@@ -6,10 +6,13 @@ from sqlalchemy import DateTime
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy import String, func
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING
 
 from app.db.session import Base
 
+if TYPE_CHECKING:
+    from app.models.process_event import ProcessEvent
 
 class MachineStatus(str, Enum):
     ACTIVE = "ACTIVE"
@@ -73,4 +76,8 @@ class Machine(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    process_events: Mapped[list["ProcessEvent"]] = relationship(
+        back_populates="machine",
     )

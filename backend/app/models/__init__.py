@@ -4,6 +4,10 @@ from app.models.production_order import (
     ProductionOrder,
     ProductionOrderStatus,
 )
+from app.models.process_event import (
+    ProcessEvent,
+    ProcessEventResult,
+)
 
 __all__ = [
     "Machine",
@@ -13,4 +17,6 @@ __all__ = [
     "ProductionOrderStatus",
     "PCBUnit",
     "PCBUnitStatus",
+    "ProcessEvent",
+    "ProcessEventResult",
 ]

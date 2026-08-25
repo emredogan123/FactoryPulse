@@ -12,8 +12,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
 if TYPE_CHECKING:
+    from app.models.material_lot import MaterialLot
     from app.models.process_event import ProcessEvent
     from app.models.production_order import ProductionOrder
+
+class ShiftType(str, Enum):
+    DAY = "DAY"
+    NIGHT = "NIGHT"
 
 class PCBUnitStatus(str, Enum):
     QUEUED = "QUEUED"
@@ -49,6 +54,26 @@ class PCBUnit(Base):
         nullable=False,
     )
 
+    material_lot_id: Mapped[UUID | None] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey(
+            "material_lots.id",
+            ondelete="SET NULL",
+        ),
+        index=True,
+        nullable=True,
+    )
+
+    shift: Mapped[ShiftType] = mapped_column(
+        SqlEnum(
+            ShiftType,
+            name="shift_type",
+        ),
+        default=ShiftType.DAY,
+        server_default=ShiftType.DAY.value,
+        nullable=False,
+    )    
+
     status: Mapped[PCBUnitStatus] = mapped_column(
         SqlEnum(
             PCBUnitStatus,
@@ -74,6 +99,12 @@ class PCBUnit(Base):
     production_order: Mapped["ProductionOrder"] = relationship(
         back_populates="pcb_units",
     )
+
+    material_lot: Mapped[
+        "MaterialLot | None"
+    ] = relationship(
+        back_populates="pcb_units",
+    )    
 
     process_events: Mapped[list["ProcessEvent"]] = relationship(
         back_populates="pcb_unit",

@@ -21,6 +21,7 @@ from app.schemas.pcb_unit import (
 from app.services.pcb_unit import (
     PCBSerialNumberAlreadyExistsError,
     PCBUnitNotFoundError,
+    MaterialLotNotFoundError,
     create_pcb_unit,
     get_pcb_unit,
     get_pcb_units,
@@ -62,7 +63,10 @@ def create_pcb_unit_endpoint(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(error),
         ) from error
-    except ProductionOrderNotFoundError as error:
+    except (
+        ProductionOrderNotFoundError,
+        MaterialLotNotFoundError,
+    ) as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),

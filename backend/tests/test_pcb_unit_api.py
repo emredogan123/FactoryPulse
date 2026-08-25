@@ -272,3 +272,27 @@ def test_pcb_unit_endpoints_require_authentication(
     )
 
     assert response.status_code == 401
+    
+def test_unknown_material_lot_returns_not_found(
+    client: TestClient,
+) -> None:
+    production_order_id = create_production_order(
+        client,
+        "TEST-ORDER-PCB-LOT-01",
+    )
+
+    payload = create_pcb_payload(
+        "TEST-PCB-UNKNOWN-LOT",
+        production_order_id,
+    )
+    payload["material_lot_id"] = str(
+        uuid4()
+    )
+    payload["shift"] = "NIGHT"
+
+    response = client.post(
+        "/api/v1/pcb-units",
+        json=payload,
+    )
+
+    assert response.status_code == 404

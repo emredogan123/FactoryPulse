@@ -19,7 +19,12 @@ from app.schemas.pcb_unit import PCBUnitCreate
 from app.services.production_order import (
     ProductionOrderNotFoundError,
 )
+from app.repositories.material_lot import (
+    get_material_lot_by_id,
+)
 
+class MaterialLotNotFoundError(Exception):
+    pass
 
 class PCBUnitNotFoundError(Exception):
     pass
@@ -47,7 +52,18 @@ def create_pcb_unit(
         db,
         data.serial_number,
     )
+    if data.material_lot_id is not None:
+        material_lot = get_material_lot_by_id(
+            db,
+            data.material_lot_id,
+        )
 
+        if material_lot is None:
+            raise MaterialLotNotFoundError(
+                f"Material lot "
+                f"'{data.material_lot_id}' "
+                "was not found"
+            )
     if existing_pcb is not None:
         raise PCBSerialNumberAlreadyExistsError(
             f"PCB serial number '{data.serial_number}' already exists"
@@ -77,7 +93,18 @@ def create_pcb_unit(
             raise ProductionOrderNotFoundError(
                 f"Production order '{data.production_order_id}' was not found"
             ) from error
+        if data.material_lot_id is not None:
+            material_lot = get_material_lot_by_id(
+                db,
+                data.material_lot_id,
+            )
 
+            if material_lot is None:
+                raise MaterialLotNotFoundError(
+                    f"Material lot "
+                    f"'{data.material_lot_id}' "
+                    "was not found"
+                ) from error
         raise
 
 

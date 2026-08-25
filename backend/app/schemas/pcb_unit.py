@@ -3,10 +3,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.pcb_unit import PCBUnitStatus
+from app.models.pcb_unit import (
+    PCBUnitStatus,
+    ShiftType,
+)
 
 
-SERIAL_NUMBER_PATTERN = r"^[A-Z0-9]+(?:-[A-Z0-9]+)*$"
+SERIAL_NUMBER_PATTERN = (
+    r"^[A-Z0-9]+(?:-[A-Z0-9]+)*$"
+)
 
 
 class PCBUnitCreate(BaseModel):
@@ -18,14 +23,20 @@ class PCBUnitCreate(BaseModel):
     )
 
     production_order_id: UUID
+    material_lot_id: UUID | None = None
+    shift: ShiftType = ShiftType.DAY
 
 
 class PCBUnitResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
     id: UUID
     serial_number: str
     production_order_id: UUID
+    material_lot_id: UUID | None
+    shift: ShiftType
     status: PCBUnitStatus
     created_at: datetime
     updated_at: datetime

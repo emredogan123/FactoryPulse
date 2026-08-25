@@ -10,7 +10,12 @@ class SimulationConfig:
     pcb_per_order: int = 50
     anomaly_probability: float = 0.12
     warning_probability: float = 0.60
+    night_shift_probability: float = 0.25
+    problematic_lot_probability: float = 0.15
+    night_anomaly_increase: float = 0.04
+    problematic_lot_anomaly_increase: float = 0.18
     stage_duration_minutes: int = 5
+    flush_batch_size: int = 500
     simulation_start: datetime = datetime(
         2026,
         8,
@@ -22,4 +27,7 @@ class SimulationConfig:
 
     @property
     def total_pcb_count(self) -> int:
-        return self.order_count * self.pcb_per_order
+        return (
+            self.order_count
+            * self.pcb_per_order
+        )

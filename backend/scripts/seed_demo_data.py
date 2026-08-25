@@ -50,9 +50,15 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def print_summary(summary: SeedSummary) -> None:
+def print_summary(
+    summary: SeedSummary,
+) -> None:
     print("FactoryPulse demo data created")
     print(f"Machines: {summary.machine_count}")
+    print(
+        "Material lots: "
+        f"{summary.material_lot_count}"
+    )
     print(
         "Production orders: "
         f"{summary.production_order_count}"
@@ -66,9 +72,31 @@ def print_summary(summary: SeedSummary) -> None:
         "Quality measurements: "
         f"{summary.measurement_count}"
     )
-    print(f"Passed PCBs: {summary.passed_pcb_count}")
-    print(f"Failed PCBs: {summary.failed_pcb_count}")
-    print(f"Rework PCBs: {summary.rework_pcb_count}")
+    print(
+        "Passed PCBs: "
+        f"{summary.passed_pcb_count}"
+    )
+    print(
+        "Failed PCBs: "
+        f"{summary.failed_pcb_count}"
+    )
+    print(
+        "Rework PCBs: "
+        f"{summary.rework_pcb_count}"
+    )
+    print(
+        "DAY shift PCBs: "
+        f"{summary.day_shift_pcb_count}"
+    )
+    print(
+        "NIGHT shift PCBs: "
+        f"{summary.night_shift_pcb_count}"
+    )
+    print(
+        "Problematic lot PCBs: "
+        f"{summary.problematic_lot_pcb_count}"
+    )
+
 
 
 def main() -> None:
@@ -97,6 +125,7 @@ def main() -> None:
             raise
 
     print_summary(summary)
+
 
 
 if __name__ == "__main__":

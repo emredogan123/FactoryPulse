@@ -1,8 +1,18 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
 from sqlalchemy.orm import Session
 
+from app.auth.permissions import (
+    AdminUser,
+    QualityUser,
+)
 from app.db.session import get_db
 from app.schemas.production_order import (
     ProductionOrderCreate,
@@ -18,9 +28,15 @@ from app.services.production_order import (
 
 
 router = APIRouter(
-    prefix="/api/v1/production-orders",
+    prefix="/production-orders",
     tags=["Production Orders"],
 )
+
+
+DatabaseSession = Annotated[
+    Session,
+    Depends(get_db),
+]
 
 
 @router.post(
@@ -30,10 +46,14 @@ router = APIRouter(
 )
 def create_production_order_endpoint(
     data: ProductionOrderCreate,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: AdminUser,
 ) -> ProductionOrderResponse:
     try:
-        return create_production_order(db, data)
+        return create_production_order(
+            db,
+            data,
+        )
     except ProductionOrderCodeAlreadyExistsError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -46,7 +66,8 @@ def create_production_order_endpoint(
     response_model=list[ProductionOrderResponse],
 )
 def list_production_orders_endpoint(
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: QualityUser,
 ) -> list[ProductionOrderResponse]:
     return get_production_orders(db)
 
@@ -57,7 +78,8 @@ def list_production_orders_endpoint(
 )
 def get_production_order_endpoint(
     production_order_id: UUID,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: QualityUser,
 ) -> ProductionOrderResponse:
     try:
         return get_production_order(

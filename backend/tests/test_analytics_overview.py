@@ -2,8 +2,45 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.analytics.service import calculate_rate
+from app.auth.schemas import UserCreate
+from app.auth.service import create_user
+from app.models.user import UserRole
 from app.simulation.config import SimulationConfig
 from app.simulation.seeder import seed_demo_data
+
+
+def create_auth_headers(
+    client: TestClient,
+    database_session: Session,
+    email: str,
+) -> dict[str, str]:
+    password = "SecurePassword123!"
+
+    create_user(
+        database_session,
+        UserCreate(
+            email=email,
+            full_name="Dashboard Viewer",
+            password=password,
+            role=UserRole.VIEWER,
+        ),
+    )
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": email,
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    token = login_response.json()["access_token"]
+
+    return {
+        "Authorization": f"Bearer {token}",
+    }
 
 
 def test_calculate_rate() -> None:
@@ -12,10 +49,30 @@ def test_calculate_rate() -> None:
     assert calculate_rate(0, 0) == 0.0
 
 
-def test_analytics_overview_returns_expected_structure(
+def test_analytics_overview_requires_authentication(
     client: TestClient,
 ) -> None:
-    response = client.get("/api/v1/analytics/overview")
+    response = client.get(
+        "/api/v1/analytics/overview"
+    )
+
+    assert response.status_code == 401
+
+
+def test_analytics_overview_returns_expected_structure(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_auth_headers(
+        client,
+        database_session,
+        email="viewer-structure@factorypulse.dev",
+    )
+
+    response = client.get(
+        "/api/v1/analytics/overview",
+        headers=headers,
+    )
 
     assert response.status_code == 200
 
@@ -43,8 +100,15 @@ def test_analytics_overview_reflects_seeded_data(
     client: TestClient,
     database_session: Session,
 ) -> None:
+    headers = create_auth_headers(
+        client,
+        database_session,
+        email="viewer-seed@factorypulse.dev",
+    )
+
     before_response = client.get(
-        "/api/v1/analytics/overview"
+        "/api/v1/analytics/overview",
+        headers=headers,
     )
 
     assert before_response.status_code == 200
@@ -65,7 +129,8 @@ def test_analytics_overview_reflects_seeded_data(
     )
 
     after_response = client.get(
-        "/api/v1/analytics/overview"
+        "/api/v1/analytics/overview",
+        headers=headers,
     )
 
     assert after_response.status_code == 200

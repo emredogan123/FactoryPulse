@@ -91,3 +91,14 @@ def authenticate_user(
         return None
 
     return user
+
+def get_users(
+    db: Session,
+) -> list[User]:
+    statement = select(User).order_by(
+        User.created_at.asc()
+    )
+
+    return list(
+        db.scalars(statement).all()
+    )

@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import (
@@ -9,6 +10,10 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
+from app.auth.permissions import (
+    AdminUser,
+    QualityUser,
+)
 from app.db.session import get_db
 from app.schemas.quality_measurement import (
     METRIC_CODE_PATTERN,
@@ -28,9 +33,15 @@ from app.services.quality_measurement import (
 
 
 router = APIRouter(
-    prefix="/api/v1/quality-measurements",
+    prefix="/quality-measurements",
     tags=["Quality Measurements"],
 )
+
+
+DatabaseSession = Annotated[
+    Session,
+    Depends(get_db),
+]
 
 
 @router.post(
@@ -40,7 +51,8 @@ router = APIRouter(
 )
 def create_quality_measurement_endpoint(
     data: QualityMeasurementCreate,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: AdminUser,
 ) -> QualityMeasurementResponse:
     try:
         return create_quality_measurement(
@@ -64,6 +76,8 @@ def create_quality_measurement_endpoint(
     response_model=list[QualityMeasurementResponse],
 )
 def list_quality_measurements_endpoint(
+    db: DatabaseSession,
+    current_user: QualityUser,
     process_event_id: UUID | None = None,
     metric_code: str | None = Query(
         default=None,
@@ -71,7 +85,6 @@ def list_quality_measurements_endpoint(
         max_length=80,
         pattern=METRIC_CODE_PATTERN,
     ),
-    db: Session = Depends(get_db),
 ) -> list[QualityMeasurementResponse]:
     try:
         return get_quality_measurements(
@@ -92,7 +105,8 @@ def list_quality_measurements_endpoint(
 )
 def get_quality_measurement_endpoint(
     measurement_id: UUID,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: QualityUser,
 ) -> QualityMeasurementResponse:
     try:
         return get_quality_measurement(

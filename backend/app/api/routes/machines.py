@@ -1,11 +1,20 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.schemas.machine import MachineCreate, MachineResponse
+
+from app.schemas.machine import (
+    MachineCreate,
+    MachineResponse,
+)
 from app.services import machine as machine_service
 from app.services.machine import (
     MachineCodeAlreadyExistsError,
@@ -14,12 +23,19 @@ from app.services.machine import (
 
 
 router = APIRouter(
-    prefix="/api/v1/machines",
+    prefix="/machines",
     tags=["Machines"],
 )
 
+from app.auth.permissions import (
+    AdminUser,
+    QualityUser,
+)
 
-DatabaseSession = Annotated[Session, Depends(get_db)]
+DatabaseSession = Annotated[
+    Session,
+    Depends(get_db),
+]
 
 
 @router.post(
@@ -30,6 +46,7 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 def create_machine(
     machine_data: MachineCreate,
     database_session: DatabaseSession,
+    current_user: AdminUser,
 ) -> MachineResponse:
     try:
         return machine_service.create_machine(
@@ -49,8 +66,11 @@ def create_machine(
 )
 def list_machines(
     database_session: DatabaseSession,
+    current_user: QualityUser,
 ) -> list[MachineResponse]:
-    return machine_service.list_machines(database_session)
+    return machine_service.list_machines(
+        database_session
+    )
 
 
 @router.get(
@@ -60,6 +80,7 @@ def list_machines(
 def get_machine(
     machine_id: UUID,
     database_session: DatabaseSession,
+    current_user: QualityUser,
 ) -> MachineResponse:
     try:
         return machine_service.get_machine(

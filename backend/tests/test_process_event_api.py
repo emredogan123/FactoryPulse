@@ -1,7 +1,54 @@
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.auth.schemas import UserCreate
+from app.auth.service import create_user
+from app.models.user import UserRole
+
+@pytest.fixture(autouse=True)
+def authenticate_as_admin(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    client.headers.update(admin_headers)
+
+TEST_PASSWORD = "SecurePassword123!"
+
+
+def create_role_headers(
+    client: TestClient,
+    database_session: Session,
+    email: str,
+    role: UserRole,
+) -> dict[str, str]:
+    create_user(
+        database_session,
+        UserCreate(
+            email=email,
+            full_name="Process Event Test User",
+            password=TEST_PASSWORD,
+            role=role,
+        ),
+    )
+
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": email,
+            "password": TEST_PASSWORD,
+        },
+    )
+
+    assert response.status_code == 200
+
+    return {
+        "Authorization": (
+            f"Bearer {response.json()['access_token']}"
+        ),
+    }
 
 def create_machine(
     client: TestClient,
@@ -317,3 +364,79 @@ def test_invalid_event_data_returns_validation_error(
     )
 
     assert response.status_code == 422
+
+
+def test_quality_engineer_can_list_process_events(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_role_headers(
+        client,
+        database_session,
+        email="engineer-event-list@factorypulse.dev",
+        role=UserRole.QUALITY_ENGINEER,
+    )
+
+    response = client.get(
+        "/api/v1/process-events",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+
+def test_quality_engineer_cannot_create_process_event(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_role_headers(
+        client,
+        database_session,
+        email="engineer-event-create@factorypulse.dev",
+        role=UserRole.QUALITY_ENGINEER,
+    )
+
+    response = client.post(
+        "/api/v1/process-events",
+        json=completed_event_payload(
+            str(uuid4()),
+            str(uuid4()),
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_viewer_cannot_list_process_events(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_role_headers(
+        client,
+        database_session,
+        email="viewer-event-list@factorypulse.dev",
+        role=UserRole.VIEWER,
+    )
+
+    response = client.get(
+        "/api/v1/process-events",
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_process_event_endpoints_require_authentication(
+    client: TestClient,
+) -> None:
+    client.headers.pop(
+        "Authorization",
+        None,
+    )
+
+    response = client.get(
+        "/api/v1/process-events"
+    )
+
+    assert response.status_code == 401

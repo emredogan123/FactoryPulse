@@ -1,8 +1,18 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
 from sqlalchemy.orm import Session
 
+from app.auth.permissions import (
+    AdminUser,
+    QualityUser,
+)
 from app.db.session import get_db
 from app.schemas.process_event import (
     ProcessEventCreate,
@@ -21,9 +31,15 @@ from app.services.process_event import (
 
 
 router = APIRouter(
-    prefix="/api/v1/process-events",
+    prefix="/process-events",
     tags=["Process Events"],
 )
+
+
+DatabaseSession = Annotated[
+    Session,
+    Depends(get_db),
+]
 
 
 @router.post(
@@ -33,10 +49,14 @@ router = APIRouter(
 )
 def create_process_event_endpoint(
     data: ProcessEventCreate,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: AdminUser,
 ) -> ProcessEventResponse:
     try:
-        return create_process_event(db, data)
+        return create_process_event(
+            db,
+            data,
+        )
     except (
         PCBUnitNotFoundError,
         MachineNotFoundError,
@@ -60,9 +80,10 @@ def create_process_event_endpoint(
     response_model=list[ProcessEventResponse],
 )
 def list_process_events_endpoint(
+    db: DatabaseSession,
+    current_user: QualityUser,
     pcb_unit_id: UUID | None = None,
     machine_id: UUID | None = None,
-    db: Session = Depends(get_db),
 ) -> list[ProcessEventResponse]:
     try:
         return get_process_events(
@@ -86,7 +107,8 @@ def list_process_events_endpoint(
 )
 def get_process_event_endpoint(
     process_event_id: UUID,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: QualityUser,
 ) -> ProcessEventResponse:
     try:
         return get_process_event(

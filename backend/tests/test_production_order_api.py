@@ -1,7 +1,55 @@
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.auth.schemas import UserCreate
+from app.auth.service import create_user
+from app.models.user import UserRole
+
+TEST_PASSWORD = "SecurePassword123!"
+
+
+@pytest.fixture(autouse=True)
+def authenticate_as_admin(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    client.headers.update(admin_headers)
+
+
+def create_role_headers(
+    client: TestClient,
+    database_session: Session,
+    email: str,
+    role: UserRole,
+) -> dict[str, str]:
+    create_user(
+        database_session,
+        UserCreate(
+            email=email,
+            full_name="Production Test User",
+            password=TEST_PASSWORD,
+            role=role,
+        ),
+    )
+
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": email,
+            "password": TEST_PASSWORD,
+        },
+    )
+
+    assert response.status_code == 200
+
+    return {
+        "Authorization": (
+            f"Bearer {response.json()['access_token']}"
+        ),
+    }
 
 def create_payload(order_code: str) -> dict[str, object]:
     return {
@@ -107,3 +155,75 @@ def test_unknown_production_order_returns_not_found(
     )
 
     assert response.status_code == 404
+
+def test_quality_engineer_can_list_orders(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_role_headers(
+        client,
+        database_session,
+        email="engineer-order-list@factorypulse.dev",
+        role=UserRole.QUALITY_ENGINEER,
+    )
+
+    response = client.get(
+        "/api/v1/production-orders",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+
+def test_quality_engineer_cannot_create_order(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_role_headers(
+        client,
+        database_session,
+        email="engineer-order-create@factorypulse.dev",
+        role=UserRole.QUALITY_ENGINEER,
+    )
+
+    response = client.post(
+        "/api/v1/production-orders",
+        json=create_payload("FORBIDDEN-PO-01"),
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_viewer_cannot_list_orders(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_role_headers(
+        client,
+        database_session,
+        email="viewer-order-list@factorypulse.dev",
+        role=UserRole.VIEWER,
+    )
+
+    response = client.get(
+        "/api/v1/production-orders",
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+
+def test_production_order_endpoints_require_authentication(
+    client: TestClient,
+) -> None:
+    client.headers.pop(
+        "Authorization",
+        None,
+    )
+
+    response = client.get(
+        "/api/v1/production-orders"
+    )
+
+    assert response.status_code == 401

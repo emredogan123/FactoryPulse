@@ -4,9 +4,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.auth.schemas import UserCreate
+from app.auth.service import create_user
 from app.db.session import engine, get_db
 from app.main import app
-
+from app.models.user import UserRole
 
 @pytest.fixture
 def database_session() -> Generator[Session, None, None]:
@@ -42,3 +44,39 @@ def client(
         yield test_client
 
     app.dependency_overrides.clear()
+
+@pytest.fixture
+def admin_headers(
+    client: TestClient,
+    database_session: Session,
+) -> dict[str, str]:
+    email = "integration-admin@factorypulse.dev"
+    password = "SecurePassword123!"
+
+    create_user(
+        database_session,
+        UserCreate(
+            email=email,
+            full_name="Integration Test Admin",
+            password=password,
+            role=UserRole.ADMIN,
+        ),
+    )
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": email,
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    access_token = login_response.json()[
+        "access_token"
+    ]
+
+    return {
+        "Authorization": f"Bearer {access_token}",
+    }

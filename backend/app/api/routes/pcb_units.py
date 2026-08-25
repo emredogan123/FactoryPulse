@@ -1,8 +1,18 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
 from sqlalchemy.orm import Session
 
+from app.auth.permissions import (
+    AdminUser,
+    QualityUser,
+)
 from app.db.session import get_db
 from app.schemas.pcb_unit import (
     PCBUnitCreate,
@@ -21,9 +31,15 @@ from app.services.production_order import (
 
 
 router = APIRouter(
-    prefix="/api/v1/pcb-units",
+    prefix="/pcb-units",
     tags=["PCB Units"],
 )
+
+
+DatabaseSession = Annotated[
+    Session,
+    Depends(get_db),
+]
 
 
 @router.post(
@@ -33,10 +49,14 @@ router = APIRouter(
 )
 def create_pcb_unit_endpoint(
     data: PCBUnitCreate,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: AdminUser,
 ) -> PCBUnitResponse:
     try:
-        return create_pcb_unit(db, data)
+        return create_pcb_unit(
+            db,
+            data,
+        )
     except PCBSerialNumberAlreadyExistsError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -54,8 +74,9 @@ def create_pcb_unit_endpoint(
     response_model=list[PCBUnitResponse],
 )
 def list_pcb_units_endpoint(
+    db: DatabaseSession,
+    current_user: QualityUser,
     production_order_id: UUID | None = None,
-    db: Session = Depends(get_db),
 ) -> list[PCBUnitResponse]:
     try:
         return get_pcb_units(
@@ -75,7 +96,8 @@ def list_pcb_units_endpoint(
 )
 def get_pcb_unit_endpoint(
     pcb_unit_id: UUID,
-    db: Session = Depends(get_db),
+    db: DatabaseSession,
+    current_user: QualityUser,
 ) -> PCBUnitResponse:
     try:
         return get_pcb_unit(

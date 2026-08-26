@@ -111,6 +111,32 @@ PARAMETER_PROFILES: dict[
     ),
 }
 
+def calculate_reflow_thermal_stress_index(
+    process_parameters: dict[str, float],
+) -> float:
+    oven_setpoint = process_parameters[
+        "oven_setpoint_c"
+    ]
+
+    conveyor_speed = process_parameters[
+        "conveyor_speed_m_min"
+    ]
+
+    temperature_deviation = max(
+        0.0,
+        (oven_setpoint - 243.0) / 2.5,
+    )
+
+    conveyor_deviation = max(
+        0.0,
+        (conveyor_speed - 0.9) / 0.05,
+    )
+
+    return round(
+        temperature_deviation
+        * conveyor_deviation,
+        4,
+    )
 
 def is_within_spec(
     value: float,
@@ -154,7 +180,12 @@ def generate_process_parameters(
             value,
             4,
         )
-
+    if stage_type == StageType.REFLOW_SOLDERING:
+        generated_parameters[
+            "thermal_stress_index"
+        ] = calculate_reflow_thermal_stress_index(
+            generated_parameters
+        )
     return generated_parameters
 
 
@@ -274,9 +305,9 @@ def generate_stage_observation(
         )
 
     return GeneratedStageObservation(
-        stage_type=stage_type,
-        drift_score=round(drift_score, 4),
-        is_anomalous=is_anomalous,
-        process_parameters=process_parameters,
-        measurements=tuple(measurements),
-    )
+    stage_type=stage_type,
+    drift_score=round(drift_score, 4),
+    is_anomalous=is_anomalous,
+    process_parameters=process_parameters,
+    measurements=tuple(measurements),
+)

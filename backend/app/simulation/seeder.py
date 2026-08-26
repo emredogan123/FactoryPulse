@@ -185,18 +185,58 @@ def choose_material_lot(
         uses_problematic_lot,
     )
 
+def calculate_degradation_score(
+    pcb_number: int,
+    total_pcb_count: int,
+    degradation_start_ratio: float,
+) -> float:
+    if total_pcb_count <= 1:
+        return 0.0
+
+    production_progress = (
+        (pcb_number - 1)
+        / (total_pcb_count - 1)
+    )
+
+    if production_progress <= degradation_start_ratio:
+        return 0.0
+
+    remaining_ratio = (
+        1.0 - degradation_start_ratio
+    )
+
+    degradation_score = (
+        production_progress
+        - degradation_start_ratio
+    ) / remaining_ratio
+
+    return round(
+        min(max(degradation_score, 0.0), 1.0),
+        4,
+    )
+
 def calculate_pcb_anomaly_probability(
     config: SimulationConfig,
     shift: ShiftType,
     uses_problematic_lot: bool,
+    degradation_score: float = 0.0,
 ) -> float:
     probability = config.anomaly_probability
 
     if uses_problematic_lot:
-        probability += 0.18
+        probability += (
+            config.problematic_lot_anomaly_increase
+        )
 
     if shift == ShiftType.NIGHT:
-        probability += 0.05
+        probability += (
+            config.night_anomaly_increase
+        )
+
+    probability += (
+        degradation_score
+        * config.degradation_anomaly_increase
+    )
 
     return min(
         probability,
@@ -281,6 +321,8 @@ def build_process_event_rows(
     is_anomalous: bool,
     anomaly_result: ProcessEventResult,
     random_generator: Random,
+    degradation_score: float = 0.0,
+    is_degrading_stage: bool = False,
 ) -> tuple[
     dict[str, object],
     list[dict[str, object]],
@@ -308,10 +350,15 @@ def build_process_event_rows(
         "machine_id": machine.id,
         "result": result,
         "process_parameters": {
-            **observation.process_parameters,
-            "drift_score": observation.drift_score,
-            "is_simulated": True,
-        },
+        **observation.process_parameters,
+        "drift_score": observation.drift_score,
+        "degradation_score": (
+            degradation_score
+            if is_degrading_stage
+            else 0.0
+        ),
+        "is_simulated": True,
+    },
         "notes": (
             "Synthetic FactoryPulse demo event"
         ),
@@ -503,11 +550,22 @@ def seed_demo_data(
 
             pcb_id = uuid4()
 
+            degradation_score = (
+               calculate_degradation_score(
+                   pcb_number=global_pcb_number,
+                   total_pcb_count=config.total_pcb_count,
+                   degradation_start_ratio=(
+                       config.degradation_start_ratio
+                   ),
+               )
+)           
+
             pcb_anomaly_probability = (
                 calculate_pcb_anomaly_probability(
-                    config,
-                    shift,
-                    uses_problematic_lot,
+                    config=config,
+                    shift=shift,
+                    uses_problematic_lot=uses_problematic_lot,
+                    degradation_score=degradation_score,
                 )
             )
 
@@ -516,13 +574,24 @@ def seed_demo_data(
                 < pcb_anomaly_probability
             )
 
-            anomaly_stage = (
-                random_generator.choice(
-                    STAGE_ORDER
+            if pcb_is_anomalous:
+                degradation_stage_probability = (
+                    degradation_score
                 )
-                if pcb_is_anomalous
-                else None
-            )
+
+                if (
+                    degradation_score > 0.0
+                    and random_generator.random()
+                    < degradation_stage_probability
+                ):
+                    anomaly_stage = config.degrading_stage
+                else:
+                    anomaly_stage = random_generator.choice(
+                        STAGE_ORDER
+                    )
+            else:
+                anomaly_stage = None
+
 
             anomaly_result = (
                 ProcessEventResult.WARNING
@@ -561,6 +630,10 @@ def seed_demo_data(
                     ),
                     anomaly_result=anomaly_result,
                     random_generator=random_generator,
+                    degradation_score=degradation_score,
+                    is_degrading_stage=(
+                        stage_type == config.degrading_stage
+                    ),
                 )
 
                 event_rows.append(event_row)

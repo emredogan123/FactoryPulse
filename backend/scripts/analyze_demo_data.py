@@ -1,6 +1,6 @@
 import argparse
 
-from sqlalchemy import case, func, select
+from sqlalchemy import Float, case, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
@@ -9,7 +9,11 @@ from app.models.pcb_unit import (
     PCBUnit,
     PCBUnitStatus,
 )
-
+from app.models.machine import Machine, StageType
+from app.models.process_event import (
+    ProcessEvent,
+    ProcessEventResult,
+)
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -124,6 +128,177 @@ def print_material_lot_analysis(
             f"{calculate_rate(issue_count, total)}%"
         )
 
+def print_machine_degradation_analysis(
+    db: Session,
+    prefix: str,
+) -> None:
+    degradation_score = cast(
+        ProcessEvent.process_parameters[
+            "degradation_score"
+        ].astext,
+        Float,
+    )
+
+    machine_period = case(
+        (
+            degradation_score <= 0.0,
+            "HEALTHY",
+        ),
+        else_="DEGRADED",
+    ).label("machine_period")
+
+    issue_count = func.sum(
+        case(
+            (
+                ProcessEvent.result.in_(
+                    (
+                        ProcessEventResult.WARNING,
+                        ProcessEventResult.FAILED,
+                    )
+                ),
+                1,
+            ),
+            else_=0,
+        )
+    )
+
+
+
+    statement = (
+        select(
+            machine_period,
+            func.count(),
+            issue_count,
+            func.avg(degradation_score),
+        )
+        .join(
+            PCBUnit,
+            PCBUnit.id
+            == ProcessEvent.pcb_unit_id,
+        )
+        .join(
+            Machine,
+            Machine.id
+            == ProcessEvent.machine_id,
+        )
+        .where(
+            PCBUnit.serial_number.like(
+                f"{prefix}-%"
+            ),
+            Machine.stage_type
+            == StageType.REFLOW_SOLDERING,
+            degradation_score.is_not(None),
+        )
+        .group_by(machine_period)
+        .order_by(machine_period)
+    )
+
+    rows = db.execute(statement).all()
+
+    print("\nMachine degradation analysis")
+
+    if not rows:
+        print(
+            "No degradation data found "
+            "for this prefix"
+        )
+        return
+
+    for (
+        period,
+        total,
+        issues,
+        average_score,
+    ) in rows:
+        issues = int(issues or 0)
+
+        print(
+            f"{period}: "
+            f"{total} events, "
+            f"{issues} issues, "
+            f"{calculate_rate(issues, total)}%, "
+            f"average score "
+            f"{round(float(average_score or 0), 4)}"
+        )
+
+def print_parameter_interaction_analysis(
+    db: Session,
+    prefix: str,
+) -> None:
+    thermal_stress = cast(
+        ProcessEvent.process_parameters[
+            "thermal_stress_index"
+        ].astext,
+        Float,
+    )
+
+    result_group = case(
+        (
+            ProcessEvent.result.in_(
+                (
+                    ProcessEventResult.WARNING,
+                    ProcessEventResult.FAILED,
+                )
+            ),
+            "ISSUE",
+        ),
+        else_="PASSED",
+    ).label("result_group")
+
+    statement = (
+        select(
+            result_group,
+            func.count(),
+            func.avg(thermal_stress),
+            func.max(thermal_stress),
+        )
+        .join(
+            PCBUnit,
+            PCBUnit.id
+            == ProcessEvent.pcb_unit_id,
+        )
+        .join(
+            Machine,
+            Machine.id
+            == ProcessEvent.machine_id,
+        )
+        .where(
+            PCBUnit.serial_number.like(
+                f"{prefix}-%"
+            ),
+            Machine.stage_type
+            == StageType.REFLOW_SOLDERING,
+            thermal_stress.is_not(None),
+        )
+        .group_by(result_group)
+        .order_by(result_group)
+    )
+
+    rows = db.execute(statement).all()
+
+    print("\nReflow parameter interaction analysis")
+
+    if not rows:
+        print(
+            "No parameter interaction data "
+            "found for this prefix"
+        )
+        return
+
+    for (
+        group,
+        total,
+        average_stress,
+        maximum_stress,
+    ) in rows:
+        print(
+            f"{group}: "
+            f"{total} events, "
+            f"average stress "
+            f"{round(float(average_stress or 0), 4)}, "
+            f"maximum stress "
+            f"{round(float(maximum_stress or 0), 4)}"
+        )
 
 def main() -> None:
     arguments = build_parser().parse_args()
@@ -142,6 +317,14 @@ def main() -> None:
             db,
             arguments.prefix,
         )
+        print_machine_degradation_analysis(
+            db,
+            arguments.prefix,
+        )
+        print_parameter_interaction_analysis(
+            db,
+            arguments.prefix,
+)
 
 
 if __name__ == "__main__":

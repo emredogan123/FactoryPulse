@@ -11,6 +11,7 @@ from app.simulation.config import SimulationConfig
 from app.models.material_lot import MaterialLot
 from app.simulation.seeder import (
     DemoDataAlreadyExistsError,
+    calculate_degradation_score,
     calculate_pcb_anomaly_probability,
     seed_demo_data,
 )
@@ -145,9 +146,9 @@ def test_anomaly_probability_reflects_shift_and_lot() -> None:
     )
 
     assert normal_day == pytest.approx(0.12)
-    assert normal_night == pytest.approx(0.17)
+    assert normal_night == pytest.approx(0.16)
     assert problematic_day == pytest.approx(0.30)
-    assert problematic_night == pytest.approx(0.35)
+    assert problematic_night == pytest.approx(0.34)
 
     assert normal_day < normal_night
     assert normal_day < problematic_day
@@ -192,3 +193,55 @@ def test_seed_assigns_shift_and_material_lot(
     )
 
     assert assigned_pcb_count == 8
+
+def test_degradation_increases_after_threshold() -> None:
+    initial_score = calculate_degradation_score(
+        pcb_number=1,
+        total_pcb_count=100,
+        degradation_start_ratio=0.60,
+    )
+
+    threshold_score = calculate_degradation_score(
+        pcb_number=60,
+        total_pcb_count=100,
+        degradation_start_ratio=0.60,
+    )
+
+    final_score = calculate_degradation_score(
+        pcb_number=100,
+        total_pcb_count=100,
+        degradation_start_ratio=0.60,
+    )
+
+    assert initial_score == 0.0
+    assert threshold_score == 0.0
+    assert final_score == 1.0
+
+
+def test_degradation_increases_anomaly_probability() -> None:
+    config = SimulationConfig(
+        anomaly_probability=0.12,
+        degradation_anomaly_increase=0.16,
+    )
+
+    healthy_probability = (
+        calculate_pcb_anomaly_probability(
+            config=config,
+            shift=ShiftType.DAY,
+            uses_problematic_lot=False,
+            degradation_score=0.0,
+        )
+    )
+
+    degraded_probability = (
+        calculate_pcb_anomaly_probability(
+            config=config,
+            shift=ShiftType.DAY,
+            uses_problematic_lot=False,
+            degradation_score=1.0,
+        )
+    )
+
+    assert healthy_probability == pytest.approx(0.12)
+    assert degraded_probability == pytest.approx(0.28)
+    assert degraded_probability > healthy_probability

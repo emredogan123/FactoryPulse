@@ -68,10 +68,18 @@ def main() -> None:
 
     pipeline = artifact["pipeline"]
 
-    predictions = pipeline.predict(features)
     probabilities = pipeline.predict_proba(
         features
     )[:, 1]
+
+    decision_threshold = artifact.get(
+        "decision_threshold",
+        0.5,
+    )
+
+    predictions = (
+        probabilities >= decision_threshold
+    ).astype(int)
 
     print("FactoryPulse independent evaluation")
     print(f"Model: {arguments.model.name}")
@@ -80,7 +88,10 @@ def main() -> None:
         f"Issue rate: "
         f"{target.mean() * 100:.2f}%"
     )
-
+    print(
+        "Decision threshold: "
+        f"{decision_threshold:.2f}"
+    )
     print("\nMetrics")
     print(
         "Accuracy:  "

@@ -20,6 +20,18 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+    ml_model_path: Path = (
+        PROJECT_ROOT
+        / "ml"
+        / "models"
+        / "enhanced_random_forest.joblib"
+    )
+    ml_report_path: Path = (
+        PROJECT_ROOT
+        / "ml"
+        / "reports"
+        / "random_forest_evaluation.json"
+    )
 
 
 @lru_cache

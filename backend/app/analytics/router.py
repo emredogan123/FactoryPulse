@@ -12,6 +12,7 @@ from app.analytics.schemas import (
     AnalyticsOverview,
     PCBRiskPredictionResponse,
     PCBRiskListResponse,
+    ModelPerformanceResponse,
 )
 from app.analytics.service import (
     get_analytics_overview,
@@ -29,6 +30,10 @@ from fastapi import (
     HTTPException,
     Query,
     status,
+)
+from app.ml.reporting import (
+    ModelReportUnavailableError,
+    load_model_performance_report,
 )
 
 router = APIRouter(
@@ -124,4 +129,32 @@ def read_pcb_risk_predictions(
                 status.HTTP_503_SERVICE_UNAVAILABLE
             ),
             detail="ML model is unavailable",
+        ) from error
+
+@router.get(
+    "/model-performance",
+    response_model=ModelPerformanceResponse,
+)
+def read_model_performance(
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.QUALITY_ENGINEER,
+            UserRole.VIEWER,
+        )
+    ),
+) -> ModelPerformanceResponse:
+    try:
+        return load_model_performance_report(
+            settings.ml_report_path
+        )
+    except ModelReportUnavailableError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
+            detail=(
+                "ML performance report "
+                "is unavailable"
+            ),
         ) from error

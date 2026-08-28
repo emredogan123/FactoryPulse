@@ -75,3 +75,33 @@ export interface PCBRiskListResponse {
   low_risk_count: number
   items: PCBRiskPrediction[]
 }
+export interface ModelPerformance {
+  model_name: string
+  model_type: string
+  evaluated_at: string
+  dataset: {
+    name: string
+    row_count: number
+    issue_count: number
+    issue_rate: number
+  }
+  decision_threshold: number
+  feature_count: number
+  metrics: {
+    accuracy: number
+    precision: number
+    recall: number
+    f1_score: number
+    roc_auc: number
+  }
+  confusion_matrix: {
+    true_negative: number
+    false_positive: number
+    false_negative: number
+    true_positive: number
+  }
+  feature_importances: Array<{
+    feature: string
+    importance: number
+  }>
+}

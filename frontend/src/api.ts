@@ -8,6 +8,7 @@ import type {
   TokenResponse,
   User,
   PCBRiskListResponse,
+  ModelPerformance,
 } from './types'
 
 const TOKEN_STORAGE_KEY =
@@ -124,6 +125,16 @@ export async function getPCBRisks(
           limit,
         },
       },
+    )
+
+  return response.data
+}
+
+export async function getModelPerformance():
+Promise<ModelPerformance> {
+  const response =
+    await api.get<ModelPerformance>(
+      '/analytics/model-performance',
     )
 
   return response.data

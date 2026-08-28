@@ -16,6 +16,7 @@ import {
   login,
   storeToken,
   getPCBRisks,
+  getModelPerformance,
 } from './api'
 import type {
   AnalyticsOverview,
@@ -24,6 +25,7 @@ import type {
   User,
   PCBRiskListResponse,
   RiskLevel,
+  ModelPerformance,
 } from './types'
 import './App.css'
 
@@ -49,6 +51,52 @@ function getErrorMessage(
   return 'An unexpected error occurred.'
 }
 
+const FEATURE_LABELS: Record<
+  string,
+  string
+> = {
+  'reflow_soldering__param__drift_score':
+    'Reflow Soldering · Drift Score',
+  'functional_testing__param__drift_score':
+    'Functional Testing · Drift Score',
+  'functional_testing__param__test_load_ma':
+    'Functional Testing · Test Load (mA)',
+  'aoi_inspection__param__drift_score':
+    'AOI Inspection · Drift Score',
+  'solder_paste_printing__param__drift_score':
+    'Solder Paste Printing · Drift Score',
+  'functional_testing__param__supply_voltage_v':
+    'Functional Testing · Supply Voltage (V)',
+  'component_placement__param__drift_score':
+    'Component Placement · Drift Score',
+  'aoi_inspection__param__inspection_speed_mm_s':
+    'AOI Inspection · Speed (mm/s)',
+  'aoi_inspection__param__camera_exposure_ms':
+    'AOI Inspection · Exposure (ms)',
+  'reflow_soldering__param__conveyor_speed_m_min':
+    'Reflow Soldering · Conveyor Speed (m/min)',
+  'reflow_soldering__param__oven_setpoint_c':
+    'Reflow Soldering · Oven Setpoint (°C)',
+  'reflow_soldering__param__thermal_stress_index':
+    'Reflow Soldering · Thermal Stress',
+}
+
+
+function formatFeatureName(
+  feature: string,
+): string {
+  const normalized = feature.replace(
+    /^(numeric|categorical)__/,
+    '',
+  )
+
+  return (
+    FEATURE_LABELS[normalized]
+    ?? normalized
+      .replace('__param__', ' · ')
+      .replaceAll('_', ' ')
+  )
+}
 
 function App() {
   const [user, setUser] =
@@ -90,7 +138,12 @@ function App() {
 
   const [riskFilter, setRiskFilter] =
     useState<RiskLevel | 'ALL'>('ALL')
-
+  const [
+    modelPerformance,
+    setModelPerformance,
+  ] = useState<ModelPerformance | null>(
+    null,
+  )
   const filteredPCBs = useMemo(() => {
     const normalizedSearch =
       search.trim().toLowerCase()
@@ -133,15 +186,18 @@ function App() {
         overviewData,
         pcbData,
         riskData,
+        performanceData,
       ] = await Promise.all([
         getAnalyticsOverview(),
         getPCBUnits(),
         getPCBRisks('ML-TEST', 50),
+        getModelPerformance(),
       ])
 
       setOverview(overviewData)
       setPCBUnits(pcbData)
       setRiskList(riskData)
+      setModelPerformance(performanceData)
 
       const preferredPCB =
         pcbData.find((pcb) =>
@@ -228,6 +284,7 @@ function App() {
     setPassword('')
     setError(null)
     setRiskList(null)
+    setModelPerformance(null)
   }
 
   async function handlePrediction(): Promise<void> {
@@ -656,6 +713,199 @@ function App() {
             )}
           </article>
         </section>
+        {modelPerformance && (
+          <section className="model-section">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">
+                  Model observability
+                </p>
+                <h2>Model performance</h2>
+              </div>
+
+              <div className="evaluation-meta">
+                Evaluated on{' '}
+                <strong>
+                  {modelPerformance.dataset.row_count
+                    .toLocaleString()}
+                </strong>
+                {' '}independent PCB records
+              </div>
+            </div>
+
+            <div className="model-grid">
+              <article className="panel">
+                <div className="model-metrics-grid">
+                  {[
+                    [
+                      'ROC-AUC',
+                      modelPerformance.metrics.roc_auc,
+                    ],
+                    [
+                      'Accuracy',
+                      modelPerformance.metrics.accuracy,
+                    ],
+                    [
+                      'Precision',
+                      modelPerformance.metrics.precision,
+                    ],
+                    [
+                      'Recall',
+                      modelPerformance.metrics.recall,
+                    ],
+                    [
+                      'F1 score',
+                      modelPerformance.metrics.f1_score,
+                    ],
+                    [
+                      'Threshold',
+                      modelPerformance.decision_threshold,
+                    ],
+                  ].map(([label, value]) => (
+                    <div
+                      className="model-metric"
+                      key={String(label)}
+                    >
+                      <span>{label}</span>
+                      <strong>
+                        {(
+                          Number(value) * 100
+                        ).toFixed(1)}
+                        %
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="confusion-heading">
+                  <div>
+                    <h3>Confusion matrix</h3>
+                    <p>
+                      Rows represent actual classes;
+                      columns represent predicted classes
+                    </p>
+                  </div>
+                </div>
+
+                <div className="confusion-grid">
+                  <div className="confusion-cell correct">
+                    <strong>
+                      {
+                        modelPerformance
+                          .confusion_matrix
+                          .true_negative
+                      }
+                    </strong>
+                    <span>True negative</span>
+                  </div>
+
+                  <div className="confusion-cell incorrect">
+                    <strong>
+                      {
+                        modelPerformance
+                          .confusion_matrix
+                          .false_positive
+                      }
+                    </strong>
+                    <span>False positive</span>
+                  </div>
+
+                  <div className="confusion-cell incorrect">
+                    <strong>
+                      {
+                        modelPerformance
+                          .confusion_matrix
+                          .false_negative
+                      }
+                    </strong>
+                    <span>False negative</span>
+                  </div>
+
+                  <div className="confusion-cell correct">
+                    <strong>
+                      {
+                        modelPerformance
+                          .confusion_matrix
+                          .true_positive
+                      }
+                    </strong>
+                    <span>True positive</span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">
+                      Explainability
+                    </p>
+                    <h2>Top feature importances</h2>
+                  </div>
+
+                  <span className="model-chip">
+                    {
+                      modelPerformance
+                        .feature_count
+                    } features
+                  </span>
+                </div>
+
+                <div className="importance-list">
+                  {modelPerformance
+                    .feature_importances
+                    .slice(0, 8)
+                    .map((item, index) => {
+                      const maximum =
+                        modelPerformance
+                          .feature_importances[0]
+                          ?.importance || 1
+
+                      return (
+                        <div
+                          className="importance-row"
+                          key={item.feature}
+                        >
+                          <span className="importance-rank">
+                            {index + 1}
+                          </span>
+
+                          <div>
+                            <div className="importance-label">
+                              <span>
+                                {formatFeatureName(
+                                  item.feature,
+                                )}
+                              </span>
+                              <strong>
+                                {(
+                                  item.importance
+                                  * 100
+                                ).toFixed(1)}
+                                %
+                              </strong>
+                            </div>
+
+                            <div className="importance-track">
+                              <span
+                                style={{
+                                  width: `${(
+                                    item.importance
+                                    / maximum
+                                  ) * 100
+                                    }%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              </article>
+            </div>
+          </section>
+        )}
         <section className="panel risk-table-panel">
           <div className="panel-heading">
             <div>

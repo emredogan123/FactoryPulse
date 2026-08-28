@@ -11,6 +11,7 @@ from uuid import uuid4
 from app.analytics.schemas import (
     PCBRiskPredictionResponse,
     RiskLevel,
+    ModelPerformanceResponse,
 )
 from app.analytics.service import (
     calculate_rate,
@@ -18,6 +19,10 @@ from app.analytics.service import (
 )
 from app.ml.inference import ModelUnavailableError
 from app.models.pcb_unit import PCBUnitStatus
+from app.ml.reporting import (
+    ModelReportUnavailableError,
+)
+
 
 def create_auth_headers(
     client: TestClient,
@@ -306,4 +311,114 @@ def test_pcb_risk_returns_service_unavailable(
     assert response.status_code == 503
     assert response.json() == {
         "detail": "ML model is unavailable",
+    }
+
+def test_model_performance_requires_authentication(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/analytics/model-performance"
+    )
+
+    assert response.status_code == 401
+
+
+def test_model_performance_returns_report(
+    client: TestClient,
+    database_session: Session,
+    monkeypatch,
+) -> None:
+    headers = create_auth_headers(
+        client,
+        database_session,
+        email="model-report@factorypulse.dev",
+    )
+
+    report = ModelPerformanceResponse(
+        model_name="FactoryPulse PCB Risk Model",
+        model_type="random_forest",
+        evaluated_at=(
+            "2026-08-28T08:05:32+00:00"
+        ),
+        dataset={
+            "name": "ml_test.csv",
+            "row_count": 2000,
+            "issue_count": 367,
+            "issue_rate": 0.1835,
+        },
+        decision_threshold=0.44,
+        feature_count=21,
+        metrics={
+            "accuracy": 0.9105,
+            "precision": 0.76257,
+            "recall": 0.743869,
+            "f1_score": 0.753103,
+            "roc_auc": 0.913788,
+        },
+        confusion_matrix={
+            "true_negative": 1548,
+            "false_positive": 85,
+            "false_negative": 94,
+            "true_positive": 273,
+        },
+        feature_importances=[],
+    )
+
+    monkeypatch.setattr(
+        "app.analytics.router."
+        "load_model_performance_report",
+        lambda report_path: report,
+    )
+
+    response = client.get(
+        "/api/v1/analytics/model-performance",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["model_type"] == "random_forest"
+    assert data["dataset"]["row_count"] == 2000
+    assert data["metrics"]["roc_auc"] == 0.913788
+    assert data["decision_threshold"] == 0.44
+
+
+def test_model_performance_returns_unavailable(
+    client: TestClient,
+    database_session: Session,
+    monkeypatch,
+) -> None:
+    headers = create_auth_headers(
+        client,
+        database_session,
+        email=(
+            "model-report-unavailable"
+            "@factorypulse.dev"
+        ),
+    )
+
+    def unavailable_report(*args, **kwargs):
+        raise ModelReportUnavailableError(
+            "Report missing"
+        )
+
+    monkeypatch.setattr(
+        "app.analytics.router."
+        "load_model_performance_report",
+        unavailable_report,
+    )
+
+    response = client.get(
+        "/api/v1/analytics/model-performance",
+        headers=headers,
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": (
+            "ML performance report "
+            "is unavailable"
+        ),
     }

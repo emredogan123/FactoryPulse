@@ -1,0 +1,88 @@
+{
+  "model_name": "FactoryPulse PCB Risk Model",
+  "model_type": "random_forest",
+  "evaluated_at": "2026-08-28T08:05:32.860148+00:00",
+  "dataset": {
+    "name": "ml_test.csv",
+    "row_count": 2000,
+    "issue_count": 367,
+    "issue_rate": 0.1835
+  },
+  "decision_threshold": 0.44,
+  "feature_count": 21,
+  "metrics": {
+    "accuracy": 0.9105,
+    "precision": 0.76257,
+    "recall": 0.743869,
+    "f1_score": 0.753103,
+    "roc_auc": 0.913788
+  },
+  "confusion_matrix": {
+    "true_negative": 1548,
+    "false_positive": 85,
+    "false_negative": 94,
+    "true_positive": 273
+  },
+  "feature_importances": [
+    {
+      "feature": "numeric__reflow_soldering__param__drift_score",
+      "importance": 0.113757
+    },
+    {
+      "feature": "numeric__functional_testing__param__drift_score",
+      "importance": 0.103689
+    },
+    {
+      "feature": "numeric__functional_testing__param__test_load_ma",
+      "importance": 0.089211
+    },
+    {
+      "feature": "numeric__aoi_inspection__param__drift_score",
+      "importance": 0.085475
+    },
+    {
+      "feature": "numeric__solder_paste_printing__param__drift_score",
+      "importance": 0.063529
+    },
+    {
+      "feature": "numeric__functional_testing__param__supply_voltage_v",
+      "importance": 0.063115
+    },
+    {
+      "feature": "numeric__component_placement__param__drift_score",
+      "importance": 0.062126
+    },
+    {
+      "feature": "numeric__aoi_inspection__param__inspection_speed_mm_s",
+      "importance": 0.050316
+    },
+    {
+      "feature": "numeric__aoi_inspection__param__camera_exposure_ms",
+      "importance": 0.047375
+    },
+    {
+      "feature": "numeric__reflow_soldering__param__conveyor_speed_m_min",
+      "importance": 0.047366
+    },
+    {
+      "feature": "numeric__reflow_soldering__param__oven_setpoint_c",
+      "importance": 0.040545
+    },
+    {
+      "feature": "numeric__reflow_soldering__param__thermal_stress_index",
+      "importance": 0.039028
+    },
+    {
+      "feature": "numeric__solder_paste_printing__param__squeegee_pressure_n",
+      "importance": 0.035834
+    },
+    {
+      "feature": "numeric__component_placement__param__placement_speed_cph",
+      "importance": 0.033175
+    },
+    {
+      "feature": "numeric__solder_paste_printing__param__print_speed_mm_s",
+      "importance": 0.033006
+    }
+  ]
+}

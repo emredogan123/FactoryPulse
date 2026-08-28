@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from enum import Enum
 from uuid import UUID
 from app.models.pcb_unit import PCBUnitStatus
+from datetime import datetime
 
 class PCBStatusCounts(BaseModel):
     passed: int
@@ -43,3 +44,43 @@ class PCBRiskListResponse(BaseModel):
     medium_risk_count: int
     low_risk_count: int
     items: list[PCBRiskPredictionResponse]
+
+class ModelDatasetSummary(BaseModel):
+    name: str
+    row_count: int
+    issue_count: int
+    issue_rate: float
+
+
+class ModelMetrics(BaseModel):
+    accuracy: float
+    precision: float
+    recall: float
+    f1_score: float
+    roc_auc: float
+
+
+class ModelConfusionMatrix(BaseModel):
+    true_negative: int
+    false_positive: int
+    false_negative: int
+    true_positive: int
+
+
+class ModelFeatureImportance(BaseModel):
+    feature: str
+    importance: float
+
+
+class ModelPerformanceResponse(BaseModel):
+    model_name: str
+    model_type: str
+    evaluated_at: datetime
+    dataset: ModelDatasetSummary
+    decision_threshold: float
+    feature_count: int
+    metrics: ModelMetrics
+    confusion_matrix: ModelConfusionMatrix
+    feature_importances: list[
+        ModelFeatureImportance
+    ]

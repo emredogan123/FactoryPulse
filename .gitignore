@@ -31,3 +31,6 @@ mlruns/
 # Logs
 *.log
 
+# Generated ML artifacts
+ml/data/*.csv
+ml/models/*.joblib

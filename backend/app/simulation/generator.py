@@ -7,6 +7,15 @@ from app.simulation.profiles import (
     STAGE_PROFILES,
 )
 
+NORMAL_DRIFT_STANDARD_DEVIATION = 0.55
+
+ANOMALOUS_DRIFT_MEAN = 1.50
+ANOMALOUS_DRIFT_STANDARD_DEVIATION = 0.85
+ANOMALOUS_DRIFT_MINIMUM = 0.25
+ANOMALOUS_DRIFT_MAXIMUM = 3.00
+
+PROCESS_PARAMETER_NOISE = 0.70
+QUALITY_MEASUREMENT_NOISE = 0.45
 
 @dataclass(frozen=True)
 class ParameterProfile:
@@ -166,7 +175,10 @@ def generate_process_parameters(
     generated_parameters: dict[str, float] = {}
 
     for profile in PARAMETER_PROFILES[stage_type]:
-        noise = random_generator.gauss(0.0, 0.25)
+        noise = random_generator.gauss(
+    0.0,
+    PROCESS_PARAMETER_NOISE,
+)
 
         value = profile.normal_mean + (
             profile.normal_standard_deviation
@@ -200,7 +212,10 @@ def generate_metric(
         else -1.0
     )
 
-    noise = random_generator.gauss(0.0, 0.25)
+    noise = random_generator.gauss(
+    0.0,
+    QUALITY_MEASUREMENT_NOISE,
+)
 
     value = profile.normal_mean + (
         profile.normal_standard_deviation
@@ -266,14 +281,22 @@ def generate_stage_observation(
     is_anomalous: bool,
 ) -> GeneratedStageObservation:
     if is_anomalous:
-        drift_score = random_generator.uniform(
-            3.3,
-            4.2,
+        sampled_drift = random_generator.gauss(
+            ANOMALOUS_DRIFT_MEAN,
+            ANOMALOUS_DRIFT_STANDARD_DEVIATION,
+        )
+
+        drift_score = min(
+            ANOMALOUS_DRIFT_MAXIMUM,
+            max(
+                ANOMALOUS_DRIFT_MINIMUM,
+                sampled_drift,
+            ),
         )
     else:
         drift_score = random_generator.gauss(
             0.0,
-            0.35,
+            NORMAL_DRIFT_STANDARD_DEVIATION,
         )
 
     process_parameters = generate_process_parameters(

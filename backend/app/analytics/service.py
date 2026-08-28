@@ -1,15 +1,26 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.analytics.schemas import (
-    AnalyticsOverview,
-    PCBStatusCounts,
-)
 from app.models.pcb_unit import PCBUnit, PCBUnitStatus
 from app.models.process_event import ProcessEvent
 from app.models.production_order import ProductionOrder
 from app.models.quality_measurement import QualityMeasurement
+from pathlib import Path
+from uuid import UUID
 
+from sqlalchemy.orm import selectinload
+
+from app.analytics.schemas import (
+    AnalyticsOverview,
+    PCBRiskPredictionResponse,
+    PCBStatusCounts,
+    RiskLevel,
+    PCBRiskListResponse
+)
+from app.ml.features import build_pcb_feature_row
+from app.ml.inference import (
+    predict_issue_probability,predict_issue_probabilities
+)
 
 def count_records(
     db: Session,
@@ -118,4 +129,173 @@ def get_analytics_overview(
         out_of_spec_measurement_count=int(
             out_of_spec_count or 0
         ),
+    )
+def determine_risk_level(
+    probability: float,
+    decision_threshold: float,
+) -> RiskLevel:
+    if probability >= decision_threshold:
+        return RiskLevel.HIGH
+
+    if probability >= decision_threshold / 2:
+        return RiskLevel.MEDIUM
+
+    return RiskLevel.LOW
+
+def get_pcb_risk_prediction(
+    db: Session,
+    pcb_id: UUID,
+    model_path: Path,
+) -> PCBRiskPredictionResponse | None:
+    statement = (
+        select(PCBUnit)
+        .options(
+            selectinload(PCBUnit.material_lot),
+            selectinload(
+                PCBUnit.process_events
+            ).selectinload(
+                ProcessEvent.machine
+            ),
+        )
+        .where(PCBUnit.id == pcb_id)
+    )
+
+    pcb = db.scalar(statement)
+
+    if pcb is None:
+        return None
+
+    feature_row = build_pcb_feature_row(
+        pcb
+    )
+
+    (
+        probability,
+        decision_threshold,
+        predicted_issue,
+        model_type,
+    ) = predict_issue_probability(
+        feature_row,
+        model_path,
+    )
+
+    return PCBRiskPredictionResponse(
+        pcb_id=pcb.id,
+        serial_number=pcb.serial_number,
+        actual_status=pcb.status,
+        issue_probability=probability,
+        decision_threshold=decision_threshold,
+        predicted_issue=predicted_issue,
+        risk_level=determine_risk_level(
+            probability,
+            decision_threshold,
+        ),
+        model_type=model_type,
+    )
+
+def get_pcb_risk_predictions(
+    db: Session,
+    model_path: Path,
+    prefix: str | None,
+    limit: int,
+) -> PCBRiskListResponse:
+    statement = (
+        select(PCBUnit)
+        .options(
+            selectinload(PCBUnit.material_lot),
+            selectinload(
+                PCBUnit.process_events
+            ).selectinload(
+                ProcessEvent.machine
+            ),
+        )
+        .where(
+            PCBUnit.status.in_(
+                (
+                    PCBUnitStatus.PASSED,
+                    PCBUnitStatus.FAILED,
+                    PCBUnitStatus.REWORK,
+                )
+            )
+        )
+        .order_by(
+            PCBUnit.updated_at.desc()
+        )
+        .limit(limit)
+    )
+
+    if prefix:
+        statement = statement.where(
+            PCBUnit.serial_number.like(
+                f"{prefix}-%"
+            )
+        )
+
+    pcbs = list(
+        db.scalars(statement).all()
+    )
+
+    feature_rows = [
+        build_pcb_feature_row(pcb)
+        for pcb in pcbs
+    ]
+
+    raw_predictions = (
+        predict_issue_probabilities(
+            feature_rows,
+            model_path,
+        )
+    )
+
+    items: list[
+        PCBRiskPredictionResponse
+    ] = []
+
+    for pcb, raw_prediction in zip(
+        pcbs,
+        raw_predictions,
+    ):
+        (
+            probability,
+            decision_threshold,
+            predicted_issue,
+            model_type,
+        ) = raw_prediction
+
+        items.append(
+            PCBRiskPredictionResponse(
+                pcb_id=pcb.id,
+                serial_number=pcb.serial_number,
+                actual_status=pcb.status,
+                issue_probability=probability,
+                decision_threshold=(
+                    decision_threshold
+                ),
+                predicted_issue=predicted_issue,
+                risk_level=determine_risk_level(
+                    probability,
+                    decision_threshold,
+                ),
+                model_type=model_type,
+            )
+        )
+
+    return PCBRiskListResponse(
+        total_analyzed=len(items),
+        high_risk_count=sum(
+            item.risk_level
+            == RiskLevel.HIGH
+            for item in items
+        ),
+        medium_risk_count=sum(
+            item.risk_level
+            == RiskLevel.MEDIUM
+            for item in items
+        ),
+        low_risk_count=sum(
+            item.risk_level
+            == RiskLevel.LOW
+            for item in items
+        ),
+        items=items,
     )

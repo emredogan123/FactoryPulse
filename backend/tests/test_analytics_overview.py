@@ -1,13 +1,23 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.analytics.service import calculate_rate
 from app.auth.schemas import UserCreate
 from app.auth.service import create_user
 from app.models.user import UserRole
 from app.simulation.config import SimulationConfig
 from app.simulation.seeder import seed_demo_data
+from uuid import uuid4
 
+from app.analytics.schemas import (
+    PCBRiskPredictionResponse,
+    RiskLevel,
+)
+from app.analytics.service import (
+    calculate_rate,
+    determine_risk_level,
+)
+from app.ml.inference import ModelUnavailableError
+from app.models.pcb_unit import PCBUnitStatus
 
 def create_auth_headers(
     client: TestClient,
@@ -167,3 +177,133 @@ def test_analytics_overview_reflects_seeded_data(
     )
 
     assert after["pass_rate"] == expected_pass_rate
+
+def test_determine_risk_level() -> None:
+    assert (
+        determine_risk_level(0.10, 0.44)
+        == RiskLevel.LOW
+    )
+    assert (
+        determine_risk_level(0.30, 0.44)
+        == RiskLevel.MEDIUM
+    )
+    assert (
+        determine_risk_level(0.60, 0.44)
+        == RiskLevel.HIGH
+    )
+
+
+def test_pcb_risk_requires_authentication(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        f"/api/v1/analytics/pcbs/{uuid4()}/risk"
+    )
+
+    assert response.status_code == 401
+
+
+def test_pcb_risk_returns_not_found(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    headers = create_auth_headers(
+        client,
+        database_session,
+        email="risk-not-found@factorypulse.dev",
+    )
+
+    response = client.get(
+        f"/api/v1/analytics/pcbs/{uuid4()}/risk",
+        headers=headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "PCB unit not found",
+    }
+
+
+def test_pcb_risk_returns_prediction(
+    client: TestClient,
+    database_session: Session,
+    monkeypatch,
+) -> None:
+    headers = create_auth_headers(
+        client,
+        database_session,
+        email="risk-prediction@factorypulse.dev",
+    )
+
+    pcb_id = uuid4()
+
+    def fake_prediction(*args, **kwargs):
+        return PCBRiskPredictionResponse(
+            pcb_id=pcb_id,
+            serial_number="TEST-PCB-000001",
+            actual_status=PCBUnitStatus.FAILED,
+            issue_probability=0.73,
+            decision_threshold=0.44,
+            predicted_issue=True,
+            risk_level=RiskLevel.HIGH,
+            model_type="random_forest",
+        )
+
+    monkeypatch.setattr(
+        "app.analytics.router."
+        "get_pcb_risk_prediction",
+        fake_prediction,
+    )
+
+    response = client.get(
+        f"/api/v1/analytics/pcbs/{pcb_id}/risk",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["pcb_id"] == str(pcb_id)
+    assert (
+        data["serial_number"]
+        == "TEST-PCB-000001"
+    )
+    assert data["issue_probability"] == 0.73
+    assert data["decision_threshold"] == 0.44
+    assert data["predicted_issue"] is True
+    assert data["risk_level"] == "HIGH"
+    assert data["model_type"] == "random_forest"
+
+
+def test_pcb_risk_returns_service_unavailable(
+    client: TestClient,
+    database_session: Session,
+    monkeypatch,
+) -> None:
+    headers = create_auth_headers(
+        client,
+        database_session,
+        email="risk-unavailable@factorypulse.dev",
+    )
+
+    def unavailable_prediction(*args, **kwargs):
+        raise ModelUnavailableError(
+            "Model missing"
+        )
+
+    monkeypatch.setattr(
+        "app.analytics.router."
+        "get_pcb_risk_prediction",
+        unavailable_prediction,
+    )
+
+    response = client.get(
+        f"/api/v1/analytics/pcbs/{uuid4()}/risk",
+        headers=headers,
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "ML model is unavailable",
+    }

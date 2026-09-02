@@ -28,7 +28,10 @@ import type {
   ModelPerformance,
 } from './types'
 import './App.css'
-
+import { Sidebar } from './components/Sidebar'
+import { useLocation } from 'react-router-dom'
+import { MachinesPage } from './pages/MachinesPage'
+import { ProductionPage } from './pages/ProductionPage'
 
 function getErrorMessage(
   error: unknown,
@@ -99,6 +102,11 @@ function formatFeatureName(
 }
 
 function App() {
+  const location = useLocation()
+
+  const isPCBRiskPage =
+    location.pathname === '/pcb-risk'
+
   const [user, setUser] =
     useState<User | null>(null)
 
@@ -327,11 +335,15 @@ function App() {
         <section className="login-brand">
           <div className="brand-mark">FP</div>
           <p className="eyebrow">
-            Manufacturing Intelligence
+            {isPCBRiskPage
+              ? 'Machine learning analysis'
+              : 'Live production overview'}
           </p>
+
           <h1>
-            See quality risks before they
-            become production losses.
+            {isPCBRiskPage
+              ? 'PCB risk'
+              : 'Quality dashboard'}
           </h1>
           <p className="login-description">
             FactoryPulse combines process
@@ -407,58 +419,42 @@ function App() {
       </main>
     )
   }
+  if (location.pathname === '/production') {
+    return (
+      <div className="app-shell">
+        <Sidebar
+          user={user}
+          onLogout={handleLogout}
+        />
+
+        <main className="dashboard">
+          <ProductionPage />
+        </main>
+      </div>
+    )
+  }
+
+  if (location.pathname === '/machines') {
+    return (
+      <div className="app-shell">
+        <Sidebar
+          user={user}
+          onLogout={handleLogout}
+        />
+
+        <main className="dashboard">
+          <MachinesPage />
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <div className="brand-mark small">
-            FP
-          </div>
-          <div>
-            <strong>FactoryPulse</strong>
-            <span>Quality Intelligence</span>
-          </div>
-        </div>
-
-        <nav>
-          <button className="nav-item active">
-            <span>⌁</span>
-            Overview
-          </button>
-          <button className="nav-item">
-            <span>◇</span>
-            PCB Risk
-          </button>
-          <button className="nav-item">
-            <span>▥</span>
-            Production
-          </button>
-          <button className="nav-item">
-            <span>◉</span>
-            Machines
-          </button>
-        </nav>
-
-        <div className="sidebar-user">
-          <div className="avatar">
-            {user.full_name
-              .slice(0, 1)
-              .toUpperCase()}
-          </div>
-          <div>
-            <strong>{user.full_name}</strong>
-            <span>{user.role}</span>
-          </div>
-          <button
-            className="logout-button"
-            onClick={handleLogout}
-            title="Sign out"
-          >
-            ↗
-          </button>
-        </div>
-      </aside>
+      <Sidebar
+        user={user}
+        onLogout={handleLogout}
+      />
 
       <main className="dashboard">
         <header className="dashboard-header">
@@ -471,7 +467,9 @@ function App() {
 
           <div className="system-status">
             <span className="status-dot" />
-            Systems operational
+            {isPCBRiskPage
+              ? 'Risk model operational'
+              : 'Systems operational'}
           </div>
         </header>
 
@@ -487,7 +485,7 @@ function App() {
           </div>
         )}
 
-        {overview && (
+        {overview && !isPCBRiskPage && (
           <section className="metrics-grid">
             <article className="metric-card">
               <span>Total PCBs</span>

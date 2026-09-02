@@ -299,6 +299,8 @@ select:focus {
 
 .nav-item {
   width: 100%;
+  text-decoration: none;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 13px;
@@ -1061,4 +1063,86 @@ select:focus {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
   }
+}
+
+.machine-table-panel {
+  margin-top: 22px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 16px 14px;
+  border-bottom: 1px solid #dce7e4;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table th {
+  color: #69807b;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.machine-status {
+  display: inline-flex;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.machine-status.active {
+  color: #08785f;
+  background: #dcf5ec;
+}
+
+.machine-status.maintenance {
+  color: #9a6500;
+  background: #fff1ce;
+}
+
+.machine-status.offline {
+  color: #af2935;
+  background: #fde3e6;
+}
+.production-table-panel {
+  margin-top: 22px;
+}
+
+.order-status {
+  display: inline-flex;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.order-status.planned {
+  color: #365b73;
+  background: #e5eff5;
+}
+
+.order-status.in_progress {
+  color: #9a6500;
+  background: #fff1ce;
+}
+
+.order-status.completed {
+  color: #08785f;
+  background: #dcf5ec;
+}
+
+.order-status.cancelled {
+  color: #af2935;
+  background: #fde3e6;
 }

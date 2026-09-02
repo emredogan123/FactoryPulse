@@ -105,3 +105,46 @@ export interface ModelPerformance {
     importance: number
   }>
 }
+
+export type MachineStatus =
+  | 'ACTIVE'
+  | 'MAINTENANCE'
+  | 'OFFLINE'
+
+export type StageType =
+  | 'SOLDER_PASTE_PRINTING'
+  | 'COMPONENT_PLACEMENT'
+  | 'REFLOW_SOLDERING'
+  | 'AOI_INSPECTION'
+  | 'FUNCTIONAL_TESTING'
+
+export interface Machine {
+  id: string
+  machine_code: string
+  name: string
+  stage_type: StageType
+  status: MachineStatus
+  commissioned_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ProductionOrderStatus =
+  | 'PLANNED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+
+export interface ProductionOrder {
+  id: string
+  order_code: string
+  product_code: string
+  target_quantity: number
+  status: ProductionOrderStatus
+  planned_start_at: string | null
+  planned_end_at: string | null
+  actual_start_at: string | null
+  actual_end_at: string | null
+  created_at: string
+  updated_at: string
+}

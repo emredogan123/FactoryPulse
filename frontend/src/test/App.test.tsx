@@ -22,6 +22,7 @@ import {
     getStoredToken,
 } from '../api'
 
+import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../api', () => ({
     clearToken: vi.fn(),
@@ -176,7 +177,11 @@ describe('FactoryPulse App', () => {
         vi.mocked(getStoredToken)
             .mockReturnValue(null)
 
-        render(<App />)
+        render(
+            <MemoryRouter>
+                <App />
+            </MemoryRouter>,
+        )
 
         expect(
             await screen.findByRole(
@@ -207,7 +212,11 @@ describe('FactoryPulse App', () => {
 
         mockDashboardRequests()
 
-        render(<App />)
+        render(
+            <MemoryRouter>
+                <App />
+            </MemoryRouter>,
+        )
 
         expect(
             await screen.findByRole(
@@ -243,7 +252,11 @@ describe('FactoryPulse App', () => {
 
         mockDashboardRequests()
 
-        render(<App />)
+        render(
+            <MemoryRouter>
+                <App />
+            </MemoryRouter>,
+        )
 
         await screen.findByRole(
             'heading',

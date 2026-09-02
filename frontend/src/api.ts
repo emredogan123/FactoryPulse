@@ -9,6 +9,8 @@ import type {
   User,
   PCBRiskListResponse,
   ModelPerformance,
+  Machine,
+  ProductionOrder,
 } from './types'
 
 const TOKEN_STORAGE_KEY =
@@ -135,6 +137,25 @@ Promise<ModelPerformance> {
   const response =
     await api.get<ModelPerformance>(
       '/analytics/model-performance',
+    )
+
+  return response.data
+}
+
+export async function getMachines():
+Promise<Machine[]> {
+  const response = await api.get<Machine[]>(
+    '/machines',
+  )
+
+  return response.data
+}
+
+export async function getProductionOrders():
+Promise<ProductionOrder[]> {
+  const response =
+    await api.get<ProductionOrder[]>(
+      '/production-orders',
     )
 
   return response.data

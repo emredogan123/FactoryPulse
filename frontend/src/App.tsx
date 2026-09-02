@@ -29,7 +29,11 @@ import type {
 } from './types'
 import './App.css'
 import { Sidebar } from './components/Sidebar'
-import { useLocation } from 'react-router-dom'
+import {
+  Navigate,
+  useLocation,
+} from 'react-router-dom'
+
 import { MachinesPage } from './pages/MachinesPage'
 import { ProductionPage } from './pages/ProductionPage'
 
@@ -100,6 +104,12 @@ function formatFeatureName(
       .replaceAll('_', ' ')
   )
 }
+const AUTHENTICATED_PATHS = [
+  '/',
+  '/pcb-risk',
+  '/production',
+  '/machines',
+]
 
 function App() {
   const location = useLocation()
@@ -335,15 +345,12 @@ function App() {
         <section className="login-brand">
           <div className="brand-mark">FP</div>
           <p className="eyebrow">
-            {isPCBRiskPage
-              ? 'Machine learning analysis'
-              : 'Live production overview'}
+            Manufacturing Intelligence
           </p>
 
           <h1>
-            {isPCBRiskPage
-              ? 'PCB risk'
-              : 'Quality dashboard'}
+            See quality risks before they
+            become production losses.
           </h1>
           <p className="login-description">
             FactoryPulse combines process
@@ -419,6 +426,13 @@ function App() {
       </main>
     )
   }
+  if (
+    !AUTHENTICATED_PATHS.includes(
+      location.pathname,
+    )
+  ) {
+    return <Navigate to="/" replace />
+  }
   if (location.pathname === '/production') {
     return (
       <div className="app-shell">
@@ -460,9 +474,16 @@ function App() {
         <header className="dashboard-header">
           <div>
             <p className="eyebrow">
-              Live production overview
+              {isPCBRiskPage
+                ? 'Machine learning analysis'
+                : 'Live production overview'}
             </p>
-            <h1>Quality dashboard</h1>
+
+            <h1>
+              {isPCBRiskPage
+                ? 'PCB risk'
+                : 'Quality dashboard'}
+            </h1>
           </div>
 
           <div className="system-status">

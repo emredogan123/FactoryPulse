@@ -16,9 +16,11 @@ import App from '../App'
 import {
     getAnalyticsOverview,
     getCurrentUser,
+    getMachines,
     getModelPerformance,
     getPCBRisks,
     getPCBUnits,
+    getProductionOrders,
     getStoredToken,
 } from '../api'
 
@@ -35,6 +37,8 @@ vi.mock('../api', () => ({
     getStoredToken: vi.fn(),
     login: vi.fn(),
     storeToken: vi.fn(),
+    getMachines: vi.fn(),
+    getProductionOrders: vi.fn(),
 }))
 
 
@@ -149,6 +153,44 @@ const performance = {
     ],
 }
 
+const machines = [
+    {
+        id: 'machine-1',
+        machine_code: 'REFLOW-01',
+        name: 'Reflow Oven 1',
+        stage_type:
+            'REFLOW_SOLDERING' as const,
+        status: 'ACTIVE' as const,
+        commissioned_at:
+            '2025-08-01T00:00:00Z',
+        created_at:
+            '2026-08-01T00:00:00Z',
+        updated_at:
+            '2026-08-01T00:00:00Z',
+    },
+]
+
+const productionOrders = [
+    {
+        id: 'order-1',
+        order_code: 'ML-TEST-ORDER-001',
+        product_code: 'ML-TEST-PCB-V1',
+        target_quantity: 500,
+        status: 'COMPLETED' as const,
+        planned_start_at:
+            '2026-08-01T00:00:00Z',
+        planned_end_at:
+            '2026-08-03T00:00:00Z',
+        actual_start_at:
+            '2026-08-01T00:00:00Z',
+        actual_end_at:
+            '2026-08-03T00:00:00Z',
+        created_at:
+            '2026-08-01T00:00:00Z',
+        updated_at:
+            '2026-08-03T00:00:00Z',
+    },
+]
 
 function mockDashboardRequests(): void {
     vi.mocked(getCurrentUser)
@@ -165,6 +207,12 @@ function mockDashboardRequests(): void {
 
     vi.mocked(getModelPerformance)
         .mockResolvedValue(performance)
+
+    vi.mocked(getMachines)
+        .mockResolvedValue(machines)
+
+    vi.mocked(getProductionOrders)
+        .mockResolvedValue(productionOrders)
 }
 
 
@@ -286,6 +334,7 @@ describe('FactoryPulse App', () => {
             ),
         )
 
+
         await waitFor(() => {
             expect(
                 screen.getByText(
@@ -299,5 +348,137 @@ describe('FactoryPulse App', () => {
                 ),
             ).not.toBeInTheDocument()
         })
+    })
+    it('opens the machines page', async () => {
+        vi.mocked(getStoredToken)
+            .mockReturnValue('test-token')
+
+        mockDashboardRequests()
+
+        render(
+            <MemoryRouter
+                initialEntries={['/machines']}
+            >
+                <App />
+            </MemoryRouter>,
+        )
+
+        expect(
+            await screen.findByRole(
+                'heading',
+                {
+                    name: 'Machines',
+                },
+            ),
+        ).toBeInTheDocument()
+
+        expect(
+            await screen.findByText(
+                'REFLOW-01',
+            ),
+        ).toBeInTheDocument()
+
+        expect(
+            getMachines,
+        ).toHaveBeenCalledOnce()
+    })
+
+    it('opens the production page', async () => {
+        vi.mocked(getStoredToken)
+            .mockReturnValue('test-token')
+
+        mockDashboardRequests()
+
+        render(
+            <MemoryRouter
+                initialEntries={['/production']}
+            >
+                <App />
+            </MemoryRouter>,
+        )
+
+        expect(
+            await screen.findByRole(
+                'heading',
+                {
+                    name: 'Production',
+                },
+            ),
+        ).toBeInTheDocument()
+
+        expect(
+            await screen.findByText(
+                'ML-TEST-ORDER-001',
+            ),
+        ).toBeInTheDocument()
+
+        expect(
+            getProductionOrders,
+        ).toHaveBeenCalledOnce()
+    })
+
+    it('opens PCB risk from the sidebar', async () => {
+        vi.mocked(getStoredToken)
+            .mockReturnValue('test-token')
+
+        mockDashboardRequests()
+
+        render(
+            <MemoryRouter>
+                <App />
+            </MemoryRouter>,
+        )
+
+        await screen.findByRole(
+            'heading',
+            {
+                name: 'Quality dashboard',
+            },
+        )
+
+        fireEvent.click(
+            screen.getByRole(
+                'link',
+                {
+                    name: /PCB Risk/i,
+                },
+            ),
+        )
+
+        expect(
+            await screen.findByRole(
+                'heading',
+                {
+                    level: 1,
+                    name: 'PCB risk',
+                },
+            ),
+        ).toBeInTheDocument()
+    })
+
+    it('redirects an unknown path to overview', async () => {
+        vi.mocked(getStoredToken)
+            .mockReturnValue('test-token')
+
+        mockDashboardRequests()
+
+        render(
+            <MemoryRouter
+                initialEntries={[
+                    '/unknown-page',
+                ]}
+            >
+                <App />
+            </MemoryRouter>,
+        )
+
+        expect(
+            await screen.findByRole(
+                'heading',
+                {
+                    name: 'Quality dashboard',
+                },
+            ),
+        ).toBeInTheDocument()
     })
 })

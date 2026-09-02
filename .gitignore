@@ -34,3 +34,4 @@ mlruns/
 # Generated ML artifacts
 ml/data/*.csv
 ml/models/*.joblib
+!ml/models/enhanced_random_forest.joblib

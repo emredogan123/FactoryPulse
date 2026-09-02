@@ -280,7 +280,7 @@ The development frontend runs at http://localhost:5173.
 
 ## Reproducing the ML Model
 
-The trained `.joblib` model is intentionally not tracked in Git. It can be reproduced from generated synthetic data.
+The selected production model is versioned with Git LFS. Generated CSV datasets and experimental model artifacts are not tracked in Git.
 
 ### 1. Generate training data
 

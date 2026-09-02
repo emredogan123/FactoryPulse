@@ -3,6 +3,23 @@
 FactoryPulse is an end-to-end manufacturing quality intelligence platform for simulated PCB production lines. It combines production traceability, process analytics and machine learning to estimate PCB quality risk before final inspection.
 
 > FactoryPulse is a decision-support project built with synthetic manufacturing data. It does not replace AOI, functional testing or engineering judgment.
+## Dashboard
+
+### Quality Overview
+
+![FactoryPulse quality dashboard](docs/images/dashboard-overview.png)
+
+### PCB Risk Analysis
+
+![FactoryPulse PCB risk analysis](docs/images/pcb-risk-analysis.png)
+
+### Production Monitoring
+
+![FactoryPulse production orders](docs/images/production-orders.png)
+
+### Machine Monitoring
+
+![FactoryPulse machine inventory](docs/images/machines.png)
 
 ## Features
 

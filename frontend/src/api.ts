@@ -14,6 +14,8 @@ import type {
   ProductionQualityResponse,
   StageQualityResponse,
   DailyQualityResponse,
+  QualityAlert,
+  QualityAlertListResponse,
 } from './types'
 
 const TOKEN_STORAGE_KEY =
@@ -207,6 +209,42 @@ export async function getDailyQuality(
       },
       signal,
     },
+  )
+
+  return response.data
+}
+
+export interface QualityAlertFilters {
+  prefix?: string
+  acknowledged?: boolean
+  limit?: number
+  offset?: number
+}
+
+export async function getQualityAlerts(
+  filters: QualityAlertFilters = {},
+  signal?: AbortSignal,
+): Promise<QualityAlertListResponse> {
+  const response = await api.get<QualityAlertListResponse>(
+    '/analytics/alerts',
+    {
+      params: {
+        ...filters,
+        limit: filters.limit ?? 50,
+        offset: filters.offset ?? 0,
+      },
+      signal,
+    },
+  )
+
+  return response.data
+}
+
+export async function acknowledgeQualityAlert(
+  alertId: string,
+): Promise<QualityAlert> {
+  const response = await api.post<QualityAlert>(
+    `/analytics/alerts/${encodeURIComponent(alertId)}/acknowledge`,
   )
 
   return response.data

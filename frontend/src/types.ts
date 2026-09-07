@@ -207,3 +207,23 @@ export interface DailyQualityResponse {
   timezone: string
   days: DailyQualityItem[]
 }
+export interface QualityAlert {
+  id: string
+  rule_code: string
+  dataset_prefix: string
+  quality_date: string
+  evaluated_count: number
+  issue_count: number
+  threshold_percent: number
+  minimum_count: number
+  created_at: string
+  acknowledged_at: string | null
+  acknowledged_by_id: string | null
+  issue_rate: number
+}
+
+export interface QualityAlertListResponse {
+  items: QualityAlert[]
+  limit: number
+  offset: number
+}

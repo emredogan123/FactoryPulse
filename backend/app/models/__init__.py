@@ -15,6 +15,7 @@ from app.models.process_event import (
 from app.models.quality_measurement import QualityMeasurement
 from app.models.user import User, UserRole
 from app.models.material_lot import MaterialLot
+from app.models.quality_alert import QualityAlert
 
 __all__ = [
     "Machine",
@@ -31,4 +32,5 @@ __all__ = [
     "QualityMeasurement",
     "User",
     "UserRole",
+    "QualityAlert",
 ]

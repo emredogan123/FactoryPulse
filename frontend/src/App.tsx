@@ -6,7 +6,6 @@ import {
 } from 'react'
 import type { FormEvent } from 'react'
 
-
 import {
   clearToken,
   getAnalyticsOverview,
@@ -38,6 +37,9 @@ import {
 
 import { MachinesPage } from './pages/MachinesPage'
 import { ProductionPage } from './pages/ProductionPage'
+import { QualityAlerts } from './components/QualityAlerts'
+
+
 
 function getErrorMessage(
   error: unknown,
@@ -566,6 +568,14 @@ function App() {
           </section>
         )}
         {!isPCBRiskPage && <ProductionQualityCharts />}
+        {!isPCBRiskPage && user && (
+  <QualityAlerts
+    canReview={
+      user.role === 'ADMIN' ||
+      user.role === 'QUALITY_ENGINEER'
+    }
+  />
+)}
         <section className="content-grid">
           <article className="panel risk-panel">
             <div className="panel-heading">

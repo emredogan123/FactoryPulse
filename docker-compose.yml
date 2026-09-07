@@ -53,7 +53,34 @@ services:
       retries: 10
       start_period: 20s
     restart: unless-stopped
-
+  alert-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    working_dir: /app/backend
+    command:
+      - python
+      - -m
+      - scripts.quality_alert_worker
+      - --prefix
+      - ML-TRAIN
+      - --prefix
+      - ML-TEST
+      - --lookback-days
+      - "30"
+      - --interval-seconds
+      - "3600"
+    environment:
+      APP_NAME: FactoryPulse
+      APP_ENV: production
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-factorypulse-docker-local-secret-change-me}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-factorypulse}:${POSTGRES_PASSWORD:-factorypulse-local-only}@db:5432/${POSTGRES_DB:-factorypulse}
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
   frontend:
     build:
       context: .

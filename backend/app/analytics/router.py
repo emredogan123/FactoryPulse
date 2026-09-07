@@ -2,6 +2,9 @@ from uuid import UUID
 from app.analytics.quality import get_production_quality
 
 from app.analytics.stage_quality import get_stage_quality
+from sqlalchemy import select
+
+from app.models.quality_alert import QualityAlert
 
 from fastapi import (
     APIRouter,
@@ -18,7 +21,11 @@ from app.analytics.schemas import (
     ModelPerformanceResponse,
     ProductionQualityResponse,
     StageQualityResponse,
-    DailyQualityResponse
+    DailyQualityResponse,
+)
+from app.analytics.alert_schemas import (
+    QualityAlertListResponse,
+    QualityAlertResponse,
 )
 from app.analytics.service import (
     get_analytics_overview,
@@ -41,7 +48,7 @@ from app.ml.reporting import (
     ModelReportUnavailableError,
     load_model_performance_report,
 )
-from datetime import date
+from datetime import date, datetime, timezone
 
 from app.analytics.daily_quality import get_daily_quality
 
@@ -264,3 +271,103 @@ def read_daily_quality(
         end_date=end_date,
         prefix=prefix,
     )
+
+@router.get(
+    "/alerts",
+    response_model=QualityAlertListResponse,
+)
+def read_quality_alerts(
+    prefix: str | None = Query(
+        default=None,
+        max_length=100,
+    ),
+    acknowledged: bool | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.QUALITY_ENGINEER,
+            UserRole.VIEWER,
+        )
+    ),
+) -> QualityAlertListResponse:
+    statement = select(QualityAlert)
+
+    # Parametre yoksa bütün grupların uyarıları listelenir.
+    # prefix="" yalnızca tüm veriler üzerinden üretilen uyarıları seçer.
+    if prefix is not None:
+        statement = statement.where(
+            QualityAlert.dataset_prefix == prefix
+        )
+
+    if acknowledged is True:
+        statement = statement.where(
+            QualityAlert.acknowledged_at.is_not(None)
+        )
+    elif acknowledged is False:
+        statement = statement.where(
+            QualityAlert.acknowledged_at.is_(None)
+        )
+
+    statement = (
+        statement
+        .order_by(
+            QualityAlert.quality_date.desc(),
+            QualityAlert.created_at.desc(),
+            QualityAlert.id.desc(),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+
+    alerts = db.execute(statement).scalars().all()
+
+    return QualityAlertListResponse(
+        items=[
+            QualityAlertResponse.model_validate(alert)
+            for alert in alerts
+        ],
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.post(
+    "/alerts/{alert_id}/acknowledge",
+    response_model=QualityAlertResponse,
+)
+def acknowledge_quality_alert(
+    alert_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.QUALITY_ENGINEER,
+        )
+    ),
+) -> QualityAlertResponse:
+    statement = (
+        select(QualityAlert)
+        .where(QualityAlert.id == alert_id)
+        .with_for_update()
+    )
+
+    alert = db.execute(statement).scalar_one_or_none()
+
+    if alert is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quality alert not found",
+        )
+
+    # Tekrar yapılan istek ilk inceleyen kişiyi ve zamanı değiştirmez.
+    if alert.acknowledged_at is None:
+        alert.acknowledged_at = datetime.now(timezone.utc)
+        alert.acknowledged_by_id = current_user.id
+
+    db.commit()
+    db.refresh(alert)
+
+    return QualityAlertResponse.model_validate(alert)

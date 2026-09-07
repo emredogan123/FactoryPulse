@@ -3,7 +3,7 @@ from enum import Enum
 from uuid import UUID
 from app.models.pcb_unit import PCBUnitStatus
 from datetime import datetime
-
+from datetime import date
 class PCBStatusCounts(BaseModel):
     passed: int
     failed: int
@@ -84,3 +84,61 @@ class ModelPerformanceResponse(BaseModel):
     feature_importances: list[
         ModelFeatureImportance
     ]
+
+class QualityCounts(BaseModel):
+    total_count: int
+    evaluated_count: int
+    pending_count: int
+    passed_count: int
+    failed_count: int
+    rework_count: int
+    issue_count: int
+    issue_rate: float | None
+
+
+class ShiftQualityItem(QualityCounts):
+    shift: str
+
+
+class MaterialLotQualityItem(QualityCounts):
+    material_lot_id: UUID | None
+    lot_code: str | None
+
+
+class ProductionQualityResponse(BaseModel):
+    prefix: str | None
+    summary: QualityCounts
+    shifts: list[ShiftQualityItem]
+    material_lots: list[MaterialLotQualityItem]
+
+class StageQualityItem(BaseModel):
+    stage_type: str
+    total_count: int
+    evaluated_count: int
+    pending_count: int
+    passed_count: int
+    warning_count: int
+    failed_count: int
+    issue_count: int
+    issue_rate: float | None
+
+
+class StageQualityResponse(BaseModel):
+    prefix: str | None
+    stages: list[StageQualityItem]
+class DailyQualityItem(BaseModel):
+    date: date
+    evaluated_count: int
+    passed_count: int
+    warning_count: int
+    failed_count: int
+    issue_count: int
+    issue_rate: float | None
+
+
+class DailyQualityResponse(BaseModel):
+    prefix: str | None
+    start_date: date
+    end_date: date
+    timezone: str
+    days: list[DailyQualityItem]

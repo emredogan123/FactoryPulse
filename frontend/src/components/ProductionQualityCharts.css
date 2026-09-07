@@ -1,0 +1,268 @@
+.pq-section {
+  margin-bottom: 24px;
+}
+
+.pq-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.pq-heading h2 {
+  margin-bottom: 8px;
+}
+
+.pq-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pq-controls label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pq-controls select,
+.pq-controls button {
+  width: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.pq-controls select {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.pq-controls button {
+  background: var(--teal-dark);
+  color: white;
+  cursor: pointer;
+}
+
+.pq-controls :focus-visible,
+.pq-lots:focus-visible {
+  outline: 3px solid var(--teal-dark);
+  outline-offset: 3px;
+}
+
+.pq-note,
+.pq-row small {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.pq-note {
+  font-size: 0.85rem;
+  margin: 10px 0 20px;
+}
+
+.pq-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.pq-summary > div {
+  background: var(--background);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.pq-summary span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.pq-summary strong {
+  font-size: 1.5rem;
+}
+
+.pq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 28px;
+}
+
+.pq-chart {
+  min-width: 0;
+}
+
+.pq-chart h3 {
+  font-size: 1rem;
+  margin: 0 0 16px;
+}
+
+.pq-chart ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pq-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.7rem;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pq-row {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.pq-row-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  font-size: 0.85rem;
+}
+
+.pq-row-title strong {
+  overflow-wrap: anywhere;
+}
+
+.pq-row-title span {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.pq-track {
+  height: 10px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 7px;
+}
+
+.pq-track > span {
+  display: block;
+  height: 100%;
+  background: var(--teal-dark);
+  border-radius: inherit;
+}
+
+.pq-lots {
+  max-height: 360px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.pq-error {
+  color: var(--danger);
+  margin: 12px 0;
+}
+
+@media (max-width: 800px) {
+  .pq-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pq-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pq-controls {
+    width: 100%;
+  }
+}
+.pq-stage-chart {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.pq-stage-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+}
+
+.pq-stage-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pq-stage-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.pq-stage-track {
+  display: flex;
+}
+
+.pq-stage-track > span {
+  border-radius: 0;
+}
+
+.pq-stage-legend .pq-warning-color,
+.pq-stage-track > .pq-warning-color {
+  background: var(--warning);
+}
+
+.pq-stage-legend .pq-failed-color,
+.pq-stage-track > .pq-failed-color {
+  background: var(--danger);
+}
+.pq-controls input[type="date"] {
+  width: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+}
+
+.pq-trend-scroll {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.pq-trend-svg {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: auto;
+}
+
+.pq-trend-svg text {
+  fill: var(--muted);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.pq-daily-details {
+  margin-top: 16px;
+}
+
+.pq-daily-details summary {
+  cursor: pointer;
+  color: var(--teal-dark);
+  font-weight: 600;
+  padding: 8px 0;
+}
+
+.pq-daily-table {
+  overflow-x: auto;
+  max-height: 380px;
+  margin-top: 12px;
+}

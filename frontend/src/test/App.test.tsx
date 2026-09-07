@@ -41,6 +41,9 @@ vi.mock('../api', () => ({
     getProductionOrders: vi.fn(),
 }))
 
+vi.mock('../components/ProductionQualityCharts', () => ({
+  ProductionQualityCharts: () => null,
+}))
 
 const user = {
     id: 'user-1',

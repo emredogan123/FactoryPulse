@@ -11,6 +11,9 @@ import type {
   ModelPerformance,
   Machine,
   ProductionOrder,
+  ProductionQualityResponse,
+  StageQualityResponse,
+  DailyQualityResponse,
 } from './types'
 
 const TOKEN_STORAGE_KEY =
@@ -157,6 +160,54 @@ Promise<ProductionOrder[]> {
     await api.get<ProductionOrder[]>(
       '/production-orders',
     )
+
+  return response.data
+}
+export async function getProductionQuality(
+  prefix?: string,
+  signal?: AbortSignal,
+): Promise<ProductionQualityResponse> {
+  const response = await api.get<ProductionQualityResponse>(
+    '/analytics/production-quality',
+    {
+      params: prefix ? { prefix } : undefined,
+      signal,
+    },
+  )
+
+  return response.data
+}
+export async function getStageQuality(
+  prefix?: string,
+  signal?: AbortSignal,
+): Promise<StageQualityResponse> {
+  const response = await api.get<StageQualityResponse>(
+    '/analytics/stage-quality',
+    {
+      params: prefix ? { prefix } : undefined,
+      signal,
+    },
+  )
+
+  return response.data
+}
+export async function getDailyQuality(
+  startDate: string,
+  endDate: string,
+  prefix?: string,
+  signal?: AbortSignal,
+): Promise<DailyQualityResponse> {
+  const response = await api.get<DailyQualityResponse>(
+    '/analytics/daily-quality',
+    {
+      params: {
+        start_date: startDate,
+        end_date: endDate,
+        ...(prefix ? { prefix } : {}),
+      },
+      signal,
+    },
+  )
 
   return response.data
 }

@@ -148,3 +148,62 @@ export interface ProductionOrder {
   created_at: string
   updated_at: string
 }
+export interface QualityCounts {
+  total_count: number
+  evaluated_count: number
+  pending_count: number
+  passed_count: number
+  failed_count: number
+  rework_count: number
+  issue_count: number
+  issue_rate: number | null
+}
+
+export interface ShiftQualityItem extends QualityCounts {
+  shift: 'DAY' | 'NIGHT'
+}
+
+export interface MaterialLotQualityItem extends QualityCounts {
+  material_lot_id: string | null
+  lot_code: string | null
+}
+
+export interface ProductionQualityResponse {
+  prefix: string | null
+  summary: QualityCounts
+  shifts: ShiftQualityItem[]
+  material_lots: MaterialLotQualityItem[]
+}
+export interface StageQualityItem {
+  stage_type: StageType
+  total_count: number
+  evaluated_count: number
+  pending_count: number
+  passed_count: number
+  warning_count: number
+  failed_count: number
+  issue_count: number
+  issue_rate: number | null
+}
+
+export interface StageQualityResponse {
+  prefix: string | null
+  stages: StageQualityItem[]
+}
+export interface DailyQualityItem {
+  date: string
+  evaluated_count: number
+  passed_count: number
+  warning_count: number
+  failed_count: number
+  issue_count: number
+  issue_rate: number | null
+}
+
+export interface DailyQualityResponse {
+  prefix: string | null
+  start_date: string
+  end_date: string
+  timezone: string
+  days: DailyQualityItem[]
+}

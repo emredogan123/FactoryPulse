@@ -1,4 +1,7 @@
 from uuid import UUID
+from app.analytics.quality import get_production_quality
+
+from app.analytics.stage_quality import get_stage_quality
 
 from fastapi import (
     APIRouter,
@@ -13,6 +16,9 @@ from app.analytics.schemas import (
     PCBRiskPredictionResponse,
     PCBRiskListResponse,
     ModelPerformanceResponse,
+    ProductionQualityResponse,
+    StageQualityResponse,
+    DailyQualityResponse
 )
 from app.analytics.service import (
     get_analytics_overview,
@@ -35,6 +41,10 @@ from app.ml.reporting import (
     ModelReportUnavailableError,
     load_model_performance_report,
 )
+from datetime import date
+
+from app.analytics.daily_quality import get_daily_quality
+
 
 router = APIRouter(
     prefix="/analytics",
@@ -158,3 +168,99 @@ def read_model_performance(
                 "is unavailable"
             ),
         ) from error
+
+
+@router.get(
+    "/production-quality",
+    response_model=ProductionQualityResponse,
+)
+def read_production_quality(
+    prefix: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=100,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.QUALITY_ENGINEER,
+            UserRole.VIEWER,
+        )
+    ),
+) -> ProductionQualityResponse:
+    return get_production_quality(db, prefix)
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.analytics.schemas import (
+    StageQualityItem,
+    StageQualityResponse,
+)
+from app.models.machine import Machine, StageType
+from app.models.pcb_unit import PCBUnit
+from app.models.process_event import (
+    ProcessEvent,
+    ProcessEventResult,
+)
+
+@router.get(
+    "/stage-quality",
+    response_model=StageQualityResponse,
+)
+def read_stage_quality(
+    prefix: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=100,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.QUALITY_ENGINEER,
+            UserRole.VIEWER,
+        )
+    ),
+) -> StageQualityResponse:
+    return get_stage_quality(db, prefix)
+
+@router.get(
+    "/daily-quality",
+    response_model=DailyQualityResponse,
+)
+def read_daily_quality(
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    prefix: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=100,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            UserRole.ADMIN,
+            UserRole.QUALITY_ENGINEER,
+            UserRole.VIEWER,
+        )
+    ),
+) -> DailyQualityResponse:
+    number_of_days = (end_date - start_date).days + 1
+
+    if not 1 <= number_of_days <= 366:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "Date range must contain between 1 and 366 days. "
+                "end_date must not be earlier than start_date."
+            ),
+        )
+
+    return get_daily_quality(
+        db=db,
+        start_date=start_date,
+        end_date=end_date,
+        prefix=prefix,
+    )

@@ -6,6 +6,7 @@ import {
 } from 'react'
 import type { FormEvent } from 'react'
 
+
 import {
   clearToken,
   getAnalyticsOverview,
@@ -29,6 +30,7 @@ import type {
 } from './types'
 import './App.css'
 import { Sidebar } from './components/Sidebar'
+import { ProductionQualityCharts } from './components/ProductionQualityCharts'
 import {
   Navigate,
   useLocation,
@@ -563,7 +565,7 @@ function App() {
             </article>
           </section>
         )}
-
+        {!isPCBRiskPage && <ProductionQualityCharts />}
         <section className="content-grid">
           <article className="panel risk-panel">
             <div className="panel-heading">

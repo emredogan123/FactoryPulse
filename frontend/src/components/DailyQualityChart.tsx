@@ -7,6 +7,7 @@ import type {
   DailyQualityItem,
   DailyQualityResponse,
 } from '../types'
+import { downloadDailyQualityCsv } from '../utils/dailyQualityCsv'
 
 function TrendPlot({ days }: { days: DailyQualityItem[] }) {
   const width = 900
@@ -235,7 +236,14 @@ function DailyResults({
         {' · '}
         Timezone: {data.timezone}
       </p>
-
+      <div className="pq-controls">
+        <button
+          type="button"
+          onClick={() => downloadDailyQualityCsv(data)}
+        >
+          Download CSV
+        </button>
+      </div>
       <TrendPlot days={data.days} />
 
       <details className="pq-daily-details">
